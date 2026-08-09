@@ -29,6 +29,11 @@
  * MSC_RF_AUTO_CMD12 and the rest. Two definitions would not fail to compile if
  * they drifted: a moved bit in MSC_RF_WRITE or a reordered msc_req field shows
  * up as a corrupted card.
+ *
+ * A target whose MSC needs board-level pins defines SOC_MSC_HAS_BOARD_PINS
+ * before including this header, which adds the card-power and pin-group fields
+ * to msc_config. It is opt-in so the default stays honest: the X1600 defines
+ * it, the X1000 has no counterpart.
  */
 
 #ifndef __MSC_INGENIC_H__
@@ -106,6 +111,25 @@ typedef struct msc_config {
     /* Card detect pin, or GPIO_NONE for a non-removable card. */
     int cd_gpio;
     int cd_active_level;
+
+#ifdef SOC_MSC_HAS_BOARD_PINS
+    /* Card power switch, or GPIO_NONE if the slot is permanently powered.
+     * R1: PC25, active high (the vendor device tree's msc1 node carries
+     * msc1_pwr_enable_level = 1).  Note PC25 is one of the three pads whose
+     * pull resistor points DOWN rather than up (X1600 PM 21.4.2.19), so the
+     * pin must actually be driven, not merely released. */
+    int pwr_gpio;
+    int pwr_active_level;
+
+    /* Pin group carrying clk/cmd/d0..d3, applied by the driver so that the
+     * MSC mux is guaranteed to be right even if gpio_init()'s table is later
+     * reorganized.  R1/MSC1: port D, pins PD00-PD05, device function 0
+     * (X1600 PM Table 21-5, line 19662: PD00 msc1_clk_o, PD01 msc1_cmd,
+     * PD02..PD05 msc1_d0..d3, all Fun_0). */
+    int pin_port;
+    uint32_t pin_mask;
+    int pin_func;
+#endif
 } msc_config;
 
 typedef struct msc_req {
