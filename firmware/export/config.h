@@ -81,6 +81,7 @@
 #define IMX233        233
 #define RK27XX       2700
 #define X1000        1000
+#define X1600        1600
 #define STM32H743   32743
 #define N10480H     10480
 
@@ -274,6 +275,7 @@
 #define LCD_SHANLING_Q1   70 /* as used by the Shanling Q1 */
 #define LCD_EROSQ         71 /* as used by the ErosQ (native) */
 #define LCD_ECHO_R1       72 /* ILI9342, as used by the Echo R1 */
+#define LCD_HIBY_R1       73 /* as used by the HiBy R1 (native) */
 
 /* LCD_PIXELFORMAT */
 #define HORIZONTAL_PACKING 1
@@ -351,6 +353,7 @@ Lyre prototype 1 */
 #define RTC_NANO3G   25 /* Dialog Semiconductor D1671 ??? */
 #define RTC_NANO4G   26 /* Dialog Semiconductor D1759 ??? */
 #define RTC_STM32H743 27
+#define RTC_X1600    28 /* Ingenic X1600 */
 
 /* USB On-the-go */
 #define USBOTG_M66591   6591 /* M:Robe 500 */
@@ -583,6 +586,8 @@ Lyre prototype 1 */
 #include "config/hibyr1.h"
 #elif defined(HIDIZS_AP80MAX)
 #include "config/hidizsap80max.h"
+#elif defined(HIBY_R1_NATIVE)
+#include "config/hibyr1native.h"
 #else
 #error "unknown hardware platform!"
 #endif
