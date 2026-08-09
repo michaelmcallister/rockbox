@@ -1736,7 +1736,7 @@ cat <<EOF
  260) Q1                   243) X20              ==HiBy==
                                                  300) R3 Pro II
  ==Echo project==          ==Surfans==           301) R1
- 270) Echo R1 (WIP)        280) F28 (WIP)
+ 270) Echo R1 (WIP)        280) F28 (WIP)        302) R1 baremetal (WIP)
 
  ==Nintendo==
  290) Nintendo 3DS (WIP)
@@ -1761,6 +1761,10 @@ fi
   scramblebitmaptools="$genericbitmaptools scramble"
   # used by X1000 targets
   x1000tools="$genericbitmaptools scramble mkspl-x1000 uclpack"
+  # used by X1600 targets. The X1600 BootROM reuses the X1000's flash signature
+  # magic and CRC-7 polynomial but adds two more CRC-7s and shrinks the length
+  # field to 16 bits, so it needs its own tool -- see tools/mkspl-x1600.c.
+  x1600tools="$genericbitmaptools scramble mkspl-x1600 uclpack"
   # default to not generating ELF files
   USE_ELF="no"
   PLUGIN_USE_ELF="no"
@@ -4229,6 +4233,32 @@ fi
     t_model="r1"
     sysfontbl="24-Terminus"
     sysfont="20-Terminus"
+    ;;
+
+    302|hibyr1native)
+    target_id=125
+    modelname="hibyr1native"
+    target="HIBY_R1_NATIVE"
+    memory=64
+    mipsr2elcc
+    appextra="recorder:gui"
+    plugins="yes"
+    tool="$rootdir/tools/scramble -add=hbr1 "
+    boottool="$rootdir/tools/mkspl-x1600 -type=nand -ppb=2 -bpp=2 "
+    output="rockbox.r1"
+    bootoutput="bootloader.r1"
+    sysfontbl="24-Terminus"
+    sysfont="20-Terminus"
+    # toolset is the tools within the tools directory that we build for
+    # this particular target.
+    toolset="$x1600tools"
+    bmp2rb_mono="$rootdir/tools/bmp2rb -f 0"
+    bmp2rb_native="$rootdir/tools/bmp2rb -f 4"
+    # architecture, manufacturer and model for the target-tree build
+    t_cpu="mips"
+    t_manufacturer="ingenic_x1600"
+    t_soc="ingenic_common"
+    t_model="hibyr1"
     ;;
 
 

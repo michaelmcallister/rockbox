@@ -1,0 +1,135 @@
+% Derived from apps/keymaps/keymap-hibyr3proii.c, which is the keymap this
+% target compiles (CONFIG_KEYPAD = HIBY_R3PROII_PAD).
+%
+% The R1 has FIVE physical keys -- Power, Play, Volume Up, Volume Down, Next --
+% and a touchscreen. It has no Prev key: button-target.h defines BUTTON_PREV
+% only so the shared R3 Pro II keymap compiles, and button_read_device() can
+% never report it. Actions bound solely to BUTTON_PREV are therefore reachable
+% only through the touchscreen, and are documented as such below rather than
+% naming a key the player does not have.
+
+\newcommand{\ButtonPower}{\btnfnt{Power}}
+\newcommand{\ButtonPlay}{\btnfnt{Play}}
+\newcommand{\ButtonVolUp}{\btnfnt{Volume Up}}
+\newcommand{\ButtonVolDown}{\btnfnt{Volume Down}}
+\newcommand{\ButtonNext}{\btnfnt{Next}}
+\newcommand{\ButtonTouch}{\btnfnt{Touchscreen}}
+\newcommand{\ButtonSelect}{\ButtonPlay}
+\newcommand{\ButtonBack}{\ButtonPower}
+\newcommand{\ButtonMenu}{\ButtonPower}
+\newcommand{\ButtonUp}{\ButtonNext}
+\newcommand{\ButtonDown}{\ButtonTouch}
+\newcommand{\ButtonLeft}{\ButtonVolDown}
+\newcommand{\ButtonRight}{\ButtonVolUp}
+\newcommand{\ButtonPrev}{\ButtonTouch}
+\newcommand{\ButtonScrollFwd}{\ButtonVolUp}
+\newcommand{\ButtonScrollBack}{\ButtonVolDown}
+
+%Button actions, standard context
+\newcommand{\ActionStdPrev}{\ButtonTouch}
+\newcommand{\ActionStdPrevRepeat}{\ButtonTouch}
+\newcommand{\ActionStdNext}{\ButtonNext}
+\newcommand{\ActionStdNextRepeat}{Long \ButtonNext}
+\newcommand{\ActionStdOk}{\ButtonPlay}
+\newcommand{\ActionStdCancel}{\ButtonPower}
+\newcommand{\ActionStdContext}{Long \ButtonPlay}
+\newcommand{\ActionStdMenu}{\ButtonTouch}
+\newcommand{\ActionStdKeylock}{\ButtonPower{} + \ButtonVolUp}
+\newcommand{\ActionStdQuickScreen}{\ButtonTouch}
+\newcommand{\ActionStdHotkey}{\ButtonTouch}
+\newcommand{\ActionStdUsbCharge}{\ButtonPlay}
+
+%Button actions, wps context
+\newcommand{\ActionWpsPlay}{\ButtonPlay}
+\newcommand{\ActionWpsStop}{Long \ButtonPlay}
+\newcommand{\ActionWpsSkipNext}{\ButtonNext}
+\newcommand{\ActionWpsSkipPrev}{\ButtonTouch}
+\newcommand{\ActionWpsSeekFwd}{Long \ButtonNext}
+\newcommand{\ActionWpsSeekBack}{\ButtonTouch}
+\newcommand{\ActionWpsVolUp}{\ButtonVolUp}
+\newcommand{\ActionWpsVolDown}{\ButtonVolDown}
+\newcommand{\ActionWpsMenu}{\ButtonPower}
+\newcommand{\ActionWpsBrowse}{\ButtonPower}
+\newcommand{\ActionWpsContext}{\ButtonTouch}
+\newcommand{\ActionWpsQuickScreen}{\ButtonTouch}
+\newcommand{\ActionWpsHotkey}{\ButtonTouch}
+
+%Button actions, settings context
+\newcommand{\ActionSettingsInc}{\ButtonVolUp}
+\newcommand{\ActionSettingsIncBigStep}{Long \ButtonVolUp}
+\newcommand{\ActionSettingsDec}{\ButtonVolDown}
+\newcommand{\ActionSettingsDecBigStep}{Long \ButtonVolDown}
+
+%Button actions, list context
+\newcommand{\ActionListVolUp}{\ButtonVolUp}
+\newcommand{\ActionListVolDown}{\ButtonVolDown}
+
+%Button actions, tree context
+\newcommand{\ActionTreeWps}{\ButtonPower}
+\newcommand{\ActionTreeEnter}{\ButtonPlay}
+\newcommand{\ActionTreeParentDirectory}{\ButtonPower}
+\newcommand{\ActionTreeMenu}{\ButtonTouch}
+\newcommand{\ActionTreeHotkey}{\ButtonTouch}
+
+%Button actions, yesno context
+\newcommand{\ActionYesNoAccept}{\ButtonPlay}
+
+%Button actions, quickscreen context
+\newcommand{\ActionQuickScreenTop}{\ButtonVolUp}
+\newcommand{\ActionQuickScreenDown}{\ButtonVolDown}
+\newcommand{\ActionQuickScreenLeft}{\ButtonPlay}
+\newcommand{\ActionQuickScreenRight}{\ButtonNext}
+\newcommand{\ActionQuickScreenExit}{\ButtonPower}
+
+%Button actions, pitchscreen context
+\newcommand{\ActionPsIncSmall}{\ButtonVolUp}
+\newcommand{\ActionPsDecSmall}{\ButtonVolDown}
+\newcommand{\ActionPsIncBig}{Long \ButtonVolUp}
+\newcommand{\ActionPsDecBig}{Long \ButtonVolDown}
+\newcommand{\ActionPsNudgeLeft}{\ButtonTouch}
+\newcommand{\ActionPsNudgeRight}{\ButtonTouch}
+\newcommand{\ActionPsToggleMode}{\ButtonPlay}
+\newcommand{\ActionPsReset}{Long \ButtonPlay}
+\newcommand{\ActionPsExit}{\ButtonPower}
+\newcommand{\ActionPsSlower}{\ButtonTouch}
+\newcommand{\ActionPsFaster}{\ButtonTouch}
+
+%Button actions, keyboard context
+\newcommand{\ActionKbdLeft}{\ButtonVolDown}
+\newcommand{\ActionKbdRight}{\ButtonVolUp}
+\newcommand{\ActionKbdCursorLeft}{\ButtonPlay{} + \ButtonVolDown}
+\newcommand{\ActionKbdCursorRight}{\ButtonPlay{} + \ButtonVolUp}
+\newcommand{\ActionKbdUp}{\ButtonNext}
+\newcommand{\ActionKbdDown}{\ButtonTouch}
+\newcommand{\ActionKbdPageFlip}{\ButtonTouch}
+\newcommand{\ActionKbdBackspace}{\ButtonTouch}
+\newcommand{\ActionKbdSelect}{\ButtonPlay}
+\newcommand{\ActionKbdDone}{Long \ButtonPlay}
+\newcommand{\ActionKbdAbort}{\ButtonPower}
+
+%Button actions, bookmark context
+\newcommand{\ActionBmDelete}{Long \ButtonPlay}
+
+% Not bound to any physical key in keymap-hibyr3proii.c, so they are reachable
+% only through the touchscreen. keymap-touchscreen.tex defines the targets.
+\newcommand{\ActionTreeStop}{\TouchActionTreeStop}
+\newcommand{\ActionWpsAbReset}{\TouchActionWpsAbReset}
+\newcommand{\ActionWpsAbSetAPrevDir}{\TouchActionWpsAbSetAPrevDir}
+\newcommand{\ActionWpsAbSetBNextDir}{\TouchActionWpsAbSetBNextDir}
+
+%Plugin lib actions
+\newcommand{\PluginUp}{\ButtonNext}
+\newcommand{\PluginDown}{\ButtonTouch}
+\newcommand{\PluginLeft}{\ButtonVolDown}
+\newcommand{\PluginRight}{\ButtonVolUp}
+\newcommand{\PluginSelect}{\ButtonPlay}
+\newcommand{\PluginSelectRepeat}{Long \ButtonPlay}
+\newcommand{\PluginCancel}{\ButtonPower}
+\newcommand{\PluginExit}{Long \ButtonPower}
+\newcommand{\PluginScrollFwd}{\ButtonVolUp}
+\newcommand{\PluginScrollBack}{\ButtonVolDown}
+
+%Bootloader actions
+\newcommand{\ActionIngenicUSBBoot}{\ButtonNext}
+\newcommand{\ActionBootRecoveryMenu}{\ButtonNext}
+\newcommand{\ActionBootOFPlayer}{\ButtonPlay}

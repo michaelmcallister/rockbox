@@ -496,6 +496,13 @@
 #define UI_LCD_POSY                 37
 
 
+#elif defined(HIBY_R1_NATIVE)
+#define UI_TITLE                    "HiBy R1"
+#define UI_WIDTH                    520 /* width of GUI window */
+#define UI_HEIGHT                   840 /* height of GUI window */
+#define UI_LCD_POSX                 20
+#define UI_LCD_POSY                 20
+
 #elif defined(SHANLING_Q1)
 #define UI_TITLE                    "Shanling Q1"
 #define UI_WIDTH                    466

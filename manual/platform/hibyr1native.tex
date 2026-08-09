@@ -1,0 +1,30 @@
+\def\UseOption{hibyr1native}
+\edef\UseOption{\UseOption,HIBY_R3PROII_PAD}
+\edef\UseOption{\UseOption,HAVE_BACKLIGHT}
+\edef\UseOption{\UseOption,HAVE_RB_BL_IN_FLASH}
+\edef\UseOption{\UseOption,hibyr1native}
+
+\newcommand{\playerman}{HiBy}
+\newcommand{\playertype}{R1}
+\newcommand{\playerlongtype}{\playertype}
+\newcommand{\dapdisplaywidth}{480}
+\newcommand{\dapdisplayheight}{800}
+\newcommand{\dapdisplaydepth}{16}
+\newcommand{\specimg}{hibyr1}
+%Used to name the player, e.g. ...to the \dap
+\newcommand{\dap}{player}
+%For use when referring to the player. E.g. the \daps\ capacity ...
+\newcommand{\daps}{player's}
+\newcommand{\firmwarefilename}{\fname{rockbox.r1}}
+\newcommand{\bootfilename}{\fname{bootloader.r1}}
+\newcommand{\firmwareextension}{\fname{r1}}
+\newcommand{\bootbackupfilename}{\fname{hibyr1-boot.bin}}
+\newcommand{\jztoolsubcommand}{hibyr1}
+\newcommand{\screenshotsize}{6cm}
+\newcommand{\disk}{SD card}
+
+% link external keymap files. The touchscreen one is not optional here: the R1
+% has a CST8xx panel, apps/features.txt therefore sets the "touchscreen" option,
+% and the plugin chapters reference \TouchCenter and the rest under \opt{}.
+\input{platform/keymap-hibyr1native.tex}
+\input{platform/keymap-touchscreen.tex}
