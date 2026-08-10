@@ -58,6 +58,19 @@ static const jz_device_info infotable[JZ_NUM_DEVICES] = {
         .vendor_id = 0x0525,
         .product_id = 0xa4a5,
     },
+    [JZ_DEVICE_HIBYR1] = {
+        .name = "hibyr1",
+        .file_ext = "r1",
+        .description = "HiBy R1",
+        .device_type = JZ_DEVICE_HIBYR1,
+        .cpu_type = JZ_CPU_X1600,
+        /* NOTE(x1600): these are the mass-storage-mode IDs and are UNVERIFIED.
+         * The only IDs confirmed on the device are the BootROM's, which live in
+         * the cputable entry below. Fill these in from `lsusb` with the player
+         * booted into its normal firmware and mounted as UMS. */
+        .vendor_id = 0x0000,
+        .product_id = 0x0000,
+    },
 };
 
 static const jz_cpu_info cputable[JZ_NUM_CPUS] = {
@@ -69,6 +82,37 @@ static const jz_cpu_info cputable[JZ_NUM_CPUS] = {
         .stage1_exec_addr = 0xf4001800,
         .stage2_load_addr = 0x80004000,
         .stage2_exec_addr = 0x80004000,
+    },
+    [JZ_CPU_X1600] = {
+        /* A HiBy R1 in BootROM USB mode enumerates as
+         * a108:eaef "Ingenic USB BOOT DEVICE", interface class 255, bulk
+         * endpoints 0x01 OUT / 0x81 IN with 512-byte packets, and answers
+         * GET_CPU_INFO (with bmRequestType 0xC0, see src/usb.c) with "X1600". */
+        .info_str = "X1600",
+        .vendor_id = 0xa108,
+        .product_id = 0xeaef,
+
+        /* Stage1 MUST be above 0x80009000. X1600 PM 34.3: "The bootrom of
+         * x1600 occupies 36KB of cache, its address is from 0x80000000 to
+         * 0x80009000." 0x8000a000 is the address a custom payload has actually
+         * been loaded and executed at on this device. It is NOT the address the
+         * vendor flash SPL is linked for (0x80001800) -- that image cannot be
+         * USB-booted at all, and attempting it hangs the BootROM until the
+         * battery is disconnected. See firmware/export/x1600.h.
+         *
+         * There is no header/key skip here as there is on the X1000, because a
+         * USB stage1 is a raw binary, not a flash image. */
+        .stage1_load_addr = 0x8000a000,
+        .stage1_exec_addr = 0x8000a000,
+
+        /* TODO(x1600): UNVERIFIED. Stage2 runs from DRAM after stage1 has
+         * brought DRAM up, so it can be anywhere in DRAM that does not overlap
+         * the BootROM's cache window or the stage1 payload. 0x80100000 matches
+         * X1600_BOOT_LOAD_ADDR, which is where the SPL puts the bootloader and
+         * therefore where the bootloader is linked -- but no stage2 has ever
+         * been loaded on this device, so treat this as a starting guess. */
+        .stage2_load_addr = 0x80100000,
+        .stage2_exec_addr = 0x80100000,
     },
 };
 

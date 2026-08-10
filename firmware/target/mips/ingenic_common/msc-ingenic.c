@@ -91,6 +91,21 @@ static void msc_init_one(msc_drv* d, int msc)
     mutex_init(&d->lock);
     semaphore_init(&d->cmd_done, 1, 0);
 
+#ifdef SOC_MSC_HAS_BOARD_PINS
+    if(d->config->pwr_gpio != GPIO_NONE) {
+        gpio_set_function(d->config->pwr_gpio,
+                          GPIOF_OUTPUT(d->config->pwr_active_level));
+        gpio_set_level(d->config->pwr_gpio, d->config->pwr_active_level);
+    }
+
+    if(d->config->pin_mask != 0)
+        gpioz_configure(d->config->pin_port, d->config->pin_mask,
+                        d->config->pin_func);
+
+    if(d->config->pwr_gpio != GPIO_NONE)
+        udelay(1000);
+#endif
+
     /* Ensure correct clock source */
     msc_soc_init_clock(msc);
 

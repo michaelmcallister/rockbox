@@ -25,7 +25,8 @@
 #include "system.h"
 #include "mmu-mips.h"
 
-#if CONFIG_CPU == JZ4732 || CONFIG_CPU == JZ4760B || CONFIG_CPU == X1000
+#if CONFIG_CPU == JZ4732 || CONFIG_CPU == JZ4760B || CONFIG_CPU == X1000 \
+    || CONFIG_CPU == X1600
 /* XBurst core has 32 JTLB entries */
 #define NR_TLB_ENTRIES  32
 #else
@@ -134,7 +135,8 @@ void mmu_init(void)
 /* Target specific operations:
  * - invalidate BTB (Branch Table Buffer)
  * - sync barrier after cache operations */
-#if CONFIG_CPU == JZ4732 || CONFIG_CPU == JZ4760B || CONFIG_CPU == X1000
+#if CONFIG_CPU == JZ4732 || CONFIG_CPU == JZ4760B || CONFIG_CPU == X1000 || \
+    CONFIG_CPU == X1600
 #define INVALIDATE_BTB()                     \
 do {                                         \
         register unsigned long tmp;          \
@@ -167,8 +169,12 @@ do {                                         \
     :                                        \
     : "i" (op), "m"(*(unsigned char *)(addr)))
 
+/* The X1600 supplies its own versions of everything below -- it has an L2 that
+ * must be maintained too -- from target/mips/ingenic_x1600/cache-x1600.c. */
+
 /* rockbox cache api */
 
+#if CONFIG_CPU != X1600
 /* Writeback whole D-cache
  * Alias to commit_discard_dcache() as there is no index type
  * variant of writeback-only operation
@@ -186,6 +192,9 @@ void commit_discard_dcache(void)
 
     SYNC_WB();
 }
+#endif /* CONFIG_CPU != X1600 */
+
+#if CONFIG_CPU != X1600
 
 /* Writeback lines of D-cache corresponding to address range and
  * invalidate those D-cache lines
@@ -214,9 +223,12 @@ void commit_dcache_range(const void *base, unsigned int size)
     SYNC_WB();
 }
 
+#endif /* CONFIG_CPU != X1600 */
+
 /* Invalidate D-cache lines corresponding to address range
  * WITHOUT writeback
  */
+#if CONFIG_CPU != X1600
 void discard_dcache_range(const void *base, unsigned int size)
 {
     char *ptr = CACHEALIGN_DOWN((char*)base);
@@ -243,7 +255,9 @@ void discard_dcache_range(const void *base, unsigned int size)
 
     SYNC_WB();
 }
+#endif /* CONFIG_CPU != X1600 */
 
+#if CONFIG_CPU != X1600
 /* Invalidate whole I-cache */
 static void discard_icache(void)
 {
@@ -262,7 +276,9 @@ static void discard_icache(void)
 
     INVALIDATE_BTB();
 }
+#endif /* CONFIG_CPU != X1600 */
 
+#if CONFIG_CPU != X1600
 /* Invalidate the entire I-cache
  * and writeback + invalidate the entire D-cache
  */
@@ -271,3 +287,4 @@ void commit_discard_idcache(void)
     commit_discard_dcache();
     discard_icache();
 }
+#endif /* CONFIG_CPU != X1600 */
