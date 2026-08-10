@@ -490,7 +490,7 @@ drivers/rtc/rtc_jz4740.c
 #elif (CONFIG_RTC == RTC_JZ4760)
 drivers/rtc/rtc_jz4760.c
 #elif (CONFIG_RTC == RTC_X1000)
-drivers/rtc/rtc_x1000.c
+drivers/rtc/rtc_ingenic.c
 #elif (CONFIG_RTC == RTC_S35380A)
 drivers/rtc/rtc_s35380a.c
 #elif (CONFIG_RTC == RTC_D2)
@@ -1743,17 +1743,39 @@ target/mips/ingenic_jz47xx/pcm-jz4760.c
 drivers/nand_id.c
 #endif /* CONFIG_CPU == JZ4760B */
 
+/* Drivers shared with other Ingenic SoCs. Each target directory supplies an
+ * ingenic-soc.h naming its own register headers; these drivers include only
+ * that, so one implementation serves every SoC named in the guard below. */
+#if CONFIG_CPU == X1000
+target/mips/ingenic_common/dma-ingenic.c
+target/mips/ingenic_common/gpio-ingenic.c
+target/mips/ingenic_common/i2c-ingenic.c
+target/mips/ingenic_common/ost-ingenic.c
+target/mips/ingenic_common/kernel-ingenic.c
+target/mips/ingenic_common/uart-ingenic.c
+#ifndef BOOTLOADER
+target/mips/ingenic_common/debug-ingenic.c
+#endif
+target/mips/ingenic_common/nand-ingenic.c
+#ifdef BOOTLOADER
+target/mips/ingenic_common/installer-ingenic.c
+target/mips/ingenic_common/spl-nand-ingenic.c
+#endif
+#if (CONFIG_STORAGE & STORAGE_SD)
+target/mips/ingenic_common/sd-ingenic.c
+#endif
+#if (CONFIG_STORAGE & (STORAGE_SD|STORAGE_MMC|STORAGE_ATA))
+target/mips/ingenic_common/msc-ingenic.c
+#endif
+#endif
+
+/* X1000-specific drivers, and the per-SoC glue for the shared ones. */
 #if CONFIG_CPU == X1000
 target/mips/ingenic_x1000/aic-x1000.c
 target/mips/ingenic_x1000/boot-x1000.c
 target/mips/ingenic_x1000/clk-x1000.c
 target/mips/ingenic_x1000/debug-x1000.c
-target/mips/ingenic_x1000/dma-x1000.c
-target/mips/ingenic_x1000/gpio-x1000.c
-target/mips/ingenic_x1000/i2c-x1000.c
-target/mips/ingenic_x1000/kernel-x1000.c
 target/mips/ingenic_x1000/lcd-x1000.c
-target/mips/ingenic_x1000/nand-x1000.c
 target/mips/ingenic_x1000/pcm-x1000.c
 target/mips/ingenic_x1000/pwm-x1000.c
 target/mips/ingenic_x1000/sfc-x1000.c
@@ -1766,11 +1788,7 @@ target/mips/ingenic_x1000/usb-x1000.c
 #if (CONFIG_STORAGE & (STORAGE_SD|STORAGE_MMC|STORAGE_ATA))
 target/mips/ingenic_x1000/msc-x1000.c
 #endif
-#if (CONFIG_STORAGE & STORAGE_SD)
-target/mips/ingenic_x1000/sd-x1000.c
-#endif
 #ifdef BOOTLOADER
-target/mips/ingenic_x1000/installer-x1000.c
 target/mips/ingenic_x1000/spl-start.S
 target/mips/ingenic_x1000/spl-x1000.c
 common/ucl_decompress.c
@@ -1810,7 +1828,6 @@ target/mips/ingenic_x1000/fiiom3k/backlight-fiiom3k.c
 target/mips/ingenic_x1000/fiiom3k/button-fiiom3k.c
 target/mips/ingenic_x1000/fiiom3k/lcd-fiiom3k.c
 target/mips/ingenic_x1000/fiiom3k/power-fiiom3k.c
-target/mips/ingenic_x1000/spl-nand-x1000.c
 #endif /* FIIO_M3K */
 
 #if defined(SHANLING_Q1)
@@ -1819,7 +1836,6 @@ target/mips/ingenic_x1000/shanlingq1/backlight-shanlingq1.c
 target/mips/ingenic_x1000/shanlingq1/button-shanlingq1.c
 target/mips/ingenic_x1000/shanlingq1/lcd-shanlingq1.c
 target/mips/ingenic_x1000/shanlingq1/power-shanlingq1.c
-target/mips/ingenic_x1000/spl-nand-x1000.c
 #endif /* SHANLING_Q1 */
 
 #if defined(EROS_QN)
@@ -1828,7 +1844,6 @@ target/mips/ingenic_x1000/erosqnative/backlight-erosqnative.c
 target/mips/ingenic_x1000/erosqnative/button-erosqnative.c
 target/mips/ingenic_x1000/erosqnative/lcd-erosqnative.c
 target/mips/ingenic_x1000/erosqnative/power-erosqnative.c
-target/mips/ingenic_x1000/spl-nand-x1000.c
 #endif /* EROS_QN */
 
 #if defined(SAMSUNG_YH820) || defined(SAMSUNG_YH920) || defined(SAMSUNG_YH925)

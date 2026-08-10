@@ -26,7 +26,7 @@
 #include "axp-pmu.h"
 #include "gpio-x1000.h"
 #include "irq-x1000.h"
-#include "i2c-x1000.h"
+#include "i2c-ingenic.h"
 #include "eros_qn_codec.h"
 #include <string.h>
 #include <stdbool.h>

@@ -32,11 +32,8 @@ typedef enum {
     PORT_MAX = 3,
 } uart_port_t;
 
-extern void uart_init(uart_port_t port, int baud);
-extern void uart_tx(uart_port_t port, const uint8_t *buf, size_t len);
-extern size_t uart_rx(uart_port_t port, uint8_t *buf, size_t len);
-extern bool uart_pending_rx(uart_port_t port);
-extern void uart_set_baud(uart_port_t port, int baud);
-extern void uart_deinit(uart_port_t port);
+/* Register definitions first, then the shared contract. */
+#include "x1000/uart.h"
+#include "uart-ingenic.h"
 
 #endif /* __UART_X1000_H__ */

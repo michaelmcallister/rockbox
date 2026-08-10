@@ -18,9 +18,27 @@
  *
  ****************************************************************************/
 
-#include "gpio-x1000.h"
+#include "ingenic-soc.h"
 #if defined(EROS_QN)
 # include "devicedata.h"
+#endif
+
+#if 0 /* not needed for the time being */
+static const char* const gpio_names[PIN_COUNT] = {
+#define DEFINE_GPIO(_name, ...) #_name,
+#define DEFINE_PINGROUP(...)
+#include "gpio-target.h"
+#undef DEFINE_GPIO
+#undef DEFINE_PINGROUP
+};
+
+static const char* const pingroup_names[PINGROUP_COUNT] = {
+#define DEFINE_GPIO(...)
+#define DEFINE_PINGROUP(_name, ...) #_name,
+#include "gpio-target.h"
+#undef DEFINE_GPIO
+#undef DEFINE_PINGROUP
+};
 #endif
 
 static const struct gpio_setting gpio_settings[PIN_COUNT] INITDATA_ATTR = {
@@ -40,24 +58,6 @@ static const struct pingroup_setting pingroup_settings[PINGROUP_COUNT] INITDATA_
 #undef DEFINE_GPIO
 #undef DEFINE_PINGROUP
 };
-
-#if 0 /* not needed for the time being */
-static const char* const gpio_names[PIN_COUNT] = {
-#define DEFINE_GPIO(_name, ...) #_name,
-#define DEFINE_PINGROUP(...)
-#include "gpio-target.h"
-#undef DEFINE_GPIO
-#undef DEFINE_PINGROUP
-};
-
-static const char* const pingroup_names[PINGROUP_COUNT] = {
-#define DEFINE_GPIO(...)
-#define DEFINE_PINGROUP(_name, ...) #_name,
-#include "gpio-target.h"
-#undef DEFINE_GPIO
-#undef DEFINE_PINGROUP
-};
-#endif
 
 void gpio_init(void)
 {
@@ -106,7 +106,7 @@ void gpio_init(void)
     /* Any GPIO pins left in an IRQ trigger state need to be switched off,
      * because the drivers won't be ready to handle the interrupts until they
      * get initialized later in the boot. */
-    for(int i = 0; i < 4; ++i) {
+    for(int i = 0; i < GPIO_NUM_PORTS; ++i) {
         uint32_t intbits = REG_GPIO_INT(i);
         if(intbits) {
             gpioz_configure(i, intbits, GPIOF_INPUT);
@@ -136,6 +136,8 @@ void gpioz_configure(int port, uint32_t pins, int func)
     else                   jz_clr(GPIO_PAT0(GPIO_Z), (~pat0 & pins) ^ pins);
     REG_GPIO_Z_GID2LD = port;
 
+    /* The pull enable is not shadowed by PZ -- the shadow group has no PU
+     * registers -- so it goes directly to the port. */
     if(func & GPIO_F_PULL)
         jz_set(GPIO_PULL(port), pins);
     else

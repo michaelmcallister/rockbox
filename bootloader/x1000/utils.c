@@ -19,6 +19,7 @@
  ****************************************************************************/
 
 #include "x1000bootloader.h"
+#include "ingenic/gui-ingenic.h"
 #include "core_alloc.h"
 #include "storage.h"
 #include "button.h"
@@ -29,7 +30,7 @@
 #include "loader_strerror.h"
 #include "linuxboot.h"
 #include "screendump.h"
-#include "nand-x1000.h"
+#include "nand-ingenic.h"
 #include "sfc-x1000.h"
 
 /* Set to true if a SYS_USB_CONNECTED event is seen

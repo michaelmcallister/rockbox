@@ -24,7 +24,7 @@
 #include "panic.h"
 #include "button.h"
 #include "gpio-x1000.h"
-#include "dma-x1000.h"
+#include "dma-ingenic.h"
 #include "irq-x1000.h"
 #include "clk-x1000.h"
 #include "boot-x1000.h"
@@ -44,7 +44,7 @@
 #include "eros_qn_codec.h"
 #endif
 
-#ifdef X1000_CPUIDLE_STATS
+#ifdef INGENIC_CPUIDLE_STATS
 int __cpu_idle_avg = 0;
 int __cpu_idle_cur = 0;
 uint32_t __cpu_idle_ticks = 0;
@@ -205,34 +205,8 @@ int system_memory_guard(int mode)
 
 /* Simple delay API -- slow path functions */
 
-void __udelay(uint32_t us)
-{
-    while(us > MAX_UDELAY_ARG) {
-        __ost_delay(MAX_UDELAY_ARG * OST_TICKS_PER_US);
-        us -= MAX_UDELAY_ARG;
-    }
 
-    __ost_delay(us * OST_TICKS_PER_US);
-}
 
-void __mdelay(uint32_t ms)
-{
-    while(ms > MAX_MDELAY_ARG) {
-        __ost_delay(MAX_MDELAY_ARG * 1000 * OST_TICKS_PER_US);
-        ms -= MAX_MDELAY_ARG;
-    }
-
-    __ost_delay(ms * 1000 * OST_TICKS_PER_US);
-}
-
-uint64_t __ost_read64(void)
-{
-    int irq = disable_irq_save();
-    uint64_t lcnt = REG_OST_2CNTL;
-    uint64_t hcnt = REG_OST_2CNTHB;
-    restore_irq(irq);
-    return (hcnt << 32) | lcnt;
-}
 
 /* IRQ handling */
 static int irq = 0;

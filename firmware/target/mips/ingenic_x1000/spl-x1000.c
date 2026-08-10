@@ -21,7 +21,8 @@
 #include "system.h"
 #include "spl-x1000.h"
 #include "clk-x1000.h"
-#include "nand-x1000.h"
+#include "nand-ingenic.h"
+#include "ost-ingenic.h"
 #include "gpio-x1000.h"
 #include "boot-x1000.h"
 #include "x1000/cpm.h"
@@ -92,17 +93,6 @@ void spl_error(void)
         mdelay(100);
         level = 1 - level;
     }
-}
-
-static void init_ost(void)
-{
-    /* NOTE: the prescaler needs to be the same as in system-x1000.c */
-    jz_writef(CPM_CLKGR, OST(0));
-    jz_writef(OST_CTRL, PRESCALE2_V(BY_4));
-    jz_overwritef(OST_CLEAR, OST2(1));
-    jz_write(OST_2CNTH, 0);
-    jz_write(OST_2CNTL, 0);
-    jz_setf(OST_ENABLE, OST2);
 }
 
 /* NOTE: This is originally based on disassembly of the FiiO M3K SPL, which

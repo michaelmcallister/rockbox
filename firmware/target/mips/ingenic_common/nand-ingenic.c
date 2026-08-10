@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#include "nand-x1000.h"
-#include "sfc-x1000.h"
+#include "nand-ingenic.h"
+#include "ingenic-soc.h"
 #include "system.h"
 #include "logf.h"
 #include <string.h>
@@ -252,7 +252,7 @@ int nand_open(struct nand_drv* drv)
                             TSH(15), TSETUP(0), THOLD(0),
                             STA_TYPE_V(1BYTE), CMD_TYPE_V(8BITS),
                             SMP_DELAY(0)));
-    sfc_set_clock(X1000_EXCLK_FREQ);
+    sfc_set_clock(SOC_EXCLK_FREQ);
 
     /* Send the software reset command */
     sfc_exec(NANDCMD_RESET, 0, NULL, 0);
@@ -298,9 +298,12 @@ void nand_enable_otp(struct nand_drv* drv, bool enable)
 static uint8_t nand_wait_busy(struct nand_drv* drv)
 {
     uint8_t reg;
+    SOC_SPIN_GUARD_DECL(guard);
     do {
         reg = nand_get_reg(drv, FREG_STATUS);
-    } while(reg & FREG_STATUS_BUSY);
+    } while((reg & FREG_STATUS_BUSY) && SOC_SPIN_GUARD_TICK(guard));
+    /* On a guarded timeout this returns the last status with BUSY still set;
+     * callers already treat a busy/not-ready status as a failure. */
     return reg;
 }
 

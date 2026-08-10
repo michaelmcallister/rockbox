@@ -18,38 +18,33 @@
  *
  ****************************************************************************/
 
-#include "kernel.h"
-#include "system.h"
-#include "x1000/ost.h"
+/* Hardware debug menu driver, shared by the X1000 and the X1600.
+ *
+ * The SCREENS are per-target -- they print SoC registers -- but the machinery
+ * that lists them is not: dbg_hw_info(), its two simplelist callbacks and
+ * dbg_cpuidle() touch no SoC register at all.
+ *
+ * Each target supplies the table, exactly as it supplies msc_configs[] and
+ * gpio_settings[]. */
 
-#define CPU_IDLE_SAMPLES 100
+#ifndef __DEBUG_INGENIC_H__
+#define __DEBUG_INGENIC_H__
 
-void tick_start(unsigned interval_in_ms)
-{
-    jz_writef(OST_CTRL, PRESCALE1_V(BY_16));
-    jz_write(OST_1DFR, interval_in_ms*(X1000_EXCLK_FREQ/16000));
-    jz_write(OST_1CNT, 0);
-    jz_write(OST_1FLG, 0);
-    jz_write(OST_1MSK, 0);
-    jz_setf(OST_ENABLE, OST1);
-}
+#include <stdbool.h>
 
-void OST(void)
-{
-#ifdef X1000_CPUIDLE_STATS
-    /* CPU idle time accounting */
-    uint32_t now = __ost_read32();
-    uint32_t div = now - __cpu_idle_reftick;
-    if(div != 0) {
-        uint32_t fraction = 1000 * __cpu_idle_ticks / div;
-        __cpu_idle_avg += fraction - __cpu_idle_avg / CPU_IDLE_SAMPLES;
-        __cpu_idle_cur = __cpu_idle_avg / CPU_IDLE_SAMPLES;
-        __cpu_idle_ticks = 0;
-        __cpu_idle_reftick = now;
-    }
+struct ingenic_debug_menuitem {
+    const char* name;
+    bool (*function)(void);
+};
+
+/* Supplied by the target: the screen list, and its length. The count is
+ * explicit because an extern array has no size for ARRAYLEN() to read. */
+extern const struct ingenic_debug_menuitem ingenic_debug_menu[];
+extern const int ingenic_debug_menu_count;
+
+#ifdef INGENIC_CPUIDLE_STATS
+/* Reads __cpu_idle_cur, which both targets maintain in their idle hook. */
+extern bool dbg_cpuidle(void);
 #endif
 
-    /* Call regular kernel tick */
-    jz_write(OST_1FLG, 0);
-    call_tick_tasks();
-}
+#endif /* __DEBUG_INGENIC_H__ */

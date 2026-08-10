@@ -21,7 +21,7 @@
 #include "system.h"
 #include "usb.h"
 #include "boot-x1000.h"
-#include "nand-x1000.h"
+#include "nand-ingenic.h"
 #include "gpio-x1000.h"
 #include "clk-x1000.h"
 #include "x1000/cpm.h"

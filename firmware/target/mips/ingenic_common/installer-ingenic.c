@@ -18,8 +18,9 @@
  *
  ****************************************************************************/
 
-#include "installer-x1000.h"
-#include "nand-x1000.h"
+#include "installer-ingenic.h"
+#include "system.h"
+#include "ingenic-soc.h"
 #include "core_alloc.h"
 #include "file.h"
 #include "microtar-rockbox.h"
@@ -50,10 +51,10 @@ static const struct update_part updates[] = {
     {
         .filename = "spl." BOOTFILE_EXT,
         .offset = 0,
-        .length = 12 * 1024,
+        .length = INSTALL_SPL_LENGTH,
     },
     {
-        .filename = "bootloader.ucl",
+        .filename = INSTALL_BOOTLOADER_NAME,
         .offset = 0x6800,
         .length = 102 * 1024,
     },
@@ -142,6 +143,9 @@ static int updater_init(struct updater* u)
     nand_lock(u->ndrv);
     rc = nand_open(u->ndrv);
     if(rc != NAND_SUCCESS) {
+        /* nand_open() only takes a reference once it has identified the chip,
+         * so there is nothing to release here -- nand_close() would push the
+         * refcount negative. */
         nand_unlock(u->ndrv);
         u->ndrv = NULL;
         rc = IERR_NAND_OPEN;
@@ -190,6 +194,14 @@ static void updater_cleanup(struct updater* u)
     }
 }
 
+/* Read-modify-write: the eraseblock is read into img_buf and only the update
+ * parts are patched, so the gaps survive. On the X1600 one of those gaps holds
+ * the vendor NAND partition table, which a blank buffer would erase.
+ *
+ * nand_write_bytes() is bad-block-oblivious, which is safe only because the
+ * map lies in block 0 -- factory-guaranteed good, and read on every boot to
+ * fetch the SPL. It also rejects unaligned offsets, and get_image_loc() rounds
+ * out to whole eraseblocks. */
 int install_bootloader(const char* filename)
 {
     struct updater u;
