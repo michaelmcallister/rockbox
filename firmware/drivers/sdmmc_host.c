@@ -262,6 +262,34 @@ static int sdmmc_host_submit_cmd(struct sdmmc_host *host,
 }
 
 /*
+ * Submit one command and check the card status in its R1 response.
+ *
+ * A card reports a rejected command in R1 rather than by failing the
+ * transfer: it answers normally, the controller sees nothing wrong, and
+ * the data is silently not committed. Only use this for commands whose
+ * response is R1 or R1b; R3, R6 and R7 carry unrelated bits in the same
+ * positions.
+ */
+static int sdmmc_host_submit_cmd_r1(struct sdmmc_host *host,
+                                    const struct sdmmc_host_command *cmd)
+{
+    struct sdmmc_host_response resp;
+
+    int rc = sdmmc_host_submit_cmd(host, cmd, &resp);
+    if (rc)
+        return rc;
+
+    if (resp.data[0] & SD_R1_CARD_ERROR)
+    {
+        logf("%s: cmd%d card status %08lx", __func__, (int)cmd->command,
+             (unsigned long)resp.data[0]);
+        return SDMMC_STATUS_ERROR;
+    }
+
+    return SDMMC_STATUS_OK;
+}
+
+/*
  * Execute an SD APP_CMD
  */
 static int sdmmc_host_submit_app_cmd(struct sdmmc_host *host,
@@ -508,7 +536,7 @@ static int sdmmc_host_cmd_set_block_len(struct sdmmc_host *host, int len)
         .flags     = SDMMC_RESP_SHORT,
     };
 
-    return sdmmc_host_submit_cmd(host, &cmd, NULL);
+    return sdmmc_host_submit_cmd_r1(host, &cmd);
 }
 
 static void sdmmc_host_set_controller_bus_width(struct sdmmc_host *host, uint32_t width)
@@ -719,7 +747,7 @@ static int sdmmc_host_transfer(struct sdmmc_host *host,
         else
             cmd.argument = start * SD_BLOCK_SIZE;
 
-        rc = sdmmc_host_submit_cmd(host, &cmd, NULL);
+        rc = sdmmc_host_submit_cmd_r1(host, &cmd);
         if (rc)
             goto out;
 
@@ -734,7 +762,12 @@ static int sdmmc_host_transfer(struct sdmmc_host *host,
             cmd.command = SD_STOP_TRANSMISSION;
             cmd.flags = SDMMC_RESP_SHORT | SDMMC_RESP_BUSY;
 
-            rc = sdmmc_host_submit_cmd(host, &cmd, NULL);
+            /*
+             * The R1 here reports failures which happened during the
+             * transfer, not just a rejected CMD12, so it is the only
+             * look we get at the outcome of a multiblock write.
+             */
+            rc = sdmmc_host_submit_cmd_r1(host, &cmd);
             if (rc)
                 goto out;
         }
