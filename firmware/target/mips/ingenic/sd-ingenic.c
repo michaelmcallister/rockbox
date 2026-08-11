@@ -22,7 +22,7 @@
 #include "storage.h"
 #include "sdmmc.h"
 #include "sd.h"
-#include "msc-x1000.h"
+#include "msc-ingenic.h"
 #include "gpio-ingenic.h"
 #include <string.h>
 

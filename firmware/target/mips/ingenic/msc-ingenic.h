@@ -7,6 +7,7 @@
  *                     \/            \/     \/    \/            \/
  *
  * Copyright (C) 2021 Aidan MacDonald
+ * Copyright (C) 2026 Michael McAllister
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,8 +19,8 @@
  *
  ****************************************************************************/
 
-#ifndef __MSC_X1000_H__
-#define __MSC_X1000_H__
+#ifndef __MSC_INGENIC_H__
+#define __MSC_INGENIC_H__
 
 #include "kernel.h"
 #include "sdmmc.h"
@@ -138,6 +139,19 @@ typedef struct msc_drv {
     tCardInfo cardinfo;
 } msc_drv;
 
+/* Controller table, defined by the target */
+extern const msc_config msc_configs[];
+
+/* SOC glue, implemented by the target.
+ *
+ * msc_soc_init_clock() selects the clock source feeding the controller.
+ * msc_soc_set_clock() programs the divider for a bus clock of at most
+ * `rate` Hz and returns the frequency it actually gave the controller;
+ * the driver divides that down further with MSC_CLKRT.
+ */
+extern void msc_soc_init_clock(int msc);
+extern unsigned msc_soc_set_clock(int msc, unsigned rate);
+
 /* Driver initialization, etc */
 extern void msc_init(void);
 extern msc_drv* msc_get(int type, int index);
@@ -181,4 +195,4 @@ extern int msc_cmd_switch_freq(msc_drv* d);
 extern int msc_cmd_send_status(msc_drv* d);
 extern int msc_cmd_set_block_len(msc_drv* d, unsigned len);
 
-#endif /* __MSC_X1000_H__ */
+#endif /* __MSC_INGENIC_H__ */
