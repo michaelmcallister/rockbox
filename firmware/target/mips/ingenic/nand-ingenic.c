@@ -43,8 +43,6 @@ static const struct nand_chip chip_ato25d1ga = {
     .cmd_page_read = NANDCMD_PAGE_READ,
     .cmd_program_execute = NANDCMD_PROGRAM_EXECUTE,
     .cmd_block_erase = NANDCMD_BLOCK_ERASE,
-    .cmd_read_cache = NANDCMD_READ_CACHE_x4,
-    .cmd_program_load = NANDCMD_PROGRAM_LOAD_x4,
 };
 
 static const struct nand_chip chip_w25n01gvxx = {
@@ -65,8 +63,6 @@ static const struct nand_chip chip_w25n01gvxx = {
     .cmd_page_read = NANDCMD_PAGE_READ,
     .cmd_program_execute = NANDCMD_PROGRAM_EXECUTE,
     .cmd_block_erase = NANDCMD_BLOCK_ERASE,
-    .cmd_read_cache = NANDCMD_READ_CACHE_x4,
-    .cmd_program_load = NANDCMD_PROGRAM_LOAD_x4,
     .setup_chip = winbond_setup_chip,
 };
 
@@ -88,8 +84,6 @@ static const struct nand_chip chip_gd5f1gq4xexx = {
     .cmd_page_read = NANDCMD_PAGE_READ,
     .cmd_program_execute = NANDCMD_PROGRAM_EXECUTE,
     .cmd_block_erase = NANDCMD_BLOCK_ERASE,
-    .cmd_read_cache = NANDCMD_READ_CACHE_x4,
-    .cmd_program_load = NANDCMD_PROGRAM_LOAD_x4,
 };
 
 static const struct nand_chip chip_xt26g01cwsiga = {
@@ -110,8 +104,6 @@ static const struct nand_chip chip_xt26g01cwsiga = {
     .cmd_page_read = NANDCMD_PAGE_READ,
     .cmd_program_execute = NANDCMD_PROGRAM_EXECUTE,
     .cmd_block_erase = NANDCMD_BLOCK_ERASE,
-    .cmd_read_cache = NANDCMD_READ_CACHE_x4,
-    .cmd_program_load = NANDCMD_PROGRAM_LOAD_x4,
 };
 
 #define chip_ds35x1gaxxx chip_gd5f1gq4xexx
@@ -316,10 +308,25 @@ int nand_block_erase(struct nand_drv* drv, nand_block_t block)
         return NAND_SUCCESS;
 }
 
+/* Quad I/O is the chip's property, not the SoC's: NAND_CHIPFLAG_QUAD is what
+ * makes nand_open() set the chip's QE bit, so the command follows the same
+ * flag */
+static uint32_t nand_cmd_read_cache(const struct nand_drv* drv)
+{
+    return (drv->chip->flags & NAND_CHIPFLAG_QUAD) ? NANDCMD_READ_CACHE_x4
+                                                   : NANDCMD_READ_CACHE;
+}
+
+static uint32_t nand_cmd_program_load(const struct nand_drv* drv)
+{
+    return (drv->chip->flags & NAND_CHIPFLAG_QUAD) ? NANDCMD_PROGRAM_LOAD_x4
+                                                   : NANDCMD_PROGRAM_LOAD;
+}
+
 int nand_page_program(struct nand_drv* drv, nand_page_t page, const void* buffer)
 {
     sfc_exec(NANDCMD_WR_EN, 0, NULL, 0);
-    sfc_exec(drv->chip->cmd_program_load,
+    sfc_exec(nand_cmd_program_load(drv),
              0, (void*)buffer, drv->fpage_size|SFC_WRITE);
     sfc_exec(drv->chip->cmd_program_execute, page, NULL, 0);
 
@@ -334,7 +341,7 @@ int nand_page_read(struct nand_drv* drv, nand_page_t page, void* buffer)
 {
     sfc_exec(drv->chip->cmd_page_read, page, NULL, 0);
     nand_wait_busy(drv);
-    sfc_exec(drv->chip->cmd_read_cache, 0, buffer, drv->fpage_size|SFC_READ);
+    sfc_exec(nand_cmd_read_cache(drv), 0, buffer, drv->fpage_size|SFC_READ);
 
     if(drv->chip->flags & NAND_CHIPFLAG_ON_DIE_ECC) {
         uint8_t status = nand_get_reg(drv, FREG_STATUS);

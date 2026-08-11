@@ -129,8 +129,6 @@ struct nand_chip {
     uint32_t cmd_page_read;
     uint32_t cmd_program_execute;
     uint32_t cmd_block_erase;
-    uint32_t cmd_read_cache;
-    uint32_t cmd_program_load;
 
     /* Chip-specific setup routine */
     void(*setup_chip)(struct nand_drv* drv);
