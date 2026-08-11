@@ -20,8 +20,10 @@
  ****************************************************************************/
 
 #include "system.h"
+#include "kernel.h"
 #include "panic.h"
 #include "led.h"
+#include "sdmmc_host.h"
 #include "msc-ingenic.h"
 #include "gpio-ingenic.h"
 #include "irq-x1000.h"
@@ -34,13 +36,72 @@
 /* #define LOGF_ENABLE */
 #include "logf.h"
 
-/* TODO - this needs some auditing to better handle errors
- *
- * There should be a clearer code path involving errors. Especially we should
- * ensure that removing the card always resets the driver to a sane state.
- */
-
 #define DEBOUNCE_TIME (HZ/10)
+
+/* MSC_NOB is 16 bits wide */
+#define MSC_MAX_BLOCKS 65535
+
+/* The controller should always raise an interrupt, but if it does not then
+ * we must not leave the storage thread blocked forever.
+ *
+ * TODO: calculate a suitable lower value for the lockup timeout.
+ *
+ * The SD spec defines timings based on the number of blocks transferred,
+ * see sec. 4.6.2 "Read, write, and erase timeout conditions". This should
+ * reduce the long delays which happen if errors occur.
+ *
+ * Also need to check if registers MSC_RDTO / MSC_RESTO are correctly set.
+ */
+#define COMMAND_TIMEOUT (10*HZ)
+
+struct sd_dma_desc {
+    unsigned nda;
+    unsigned mem;
+    unsigned len;
+    unsigned cmd;
+} __attribute__((aligned(16)));
+
+typedef struct msc_drv {
+    int msc_nr;
+    const msc_config* config;
+    struct sdmmc_host host;
+
+    /* Default CMDAT; carries the bus width */
+    unsigned cmdat_def;
+
+    /* Bus clock requested by sdmmc_host, and whether it is programmed */
+    uint32_t bus_clock;
+    bool powered;
+
+    /* Set after power on so the next command carries the initialization
+     * clock sequence the card needs before CMD0 */
+    bool send_init;
+
+    /* Command state; shared between the caller and the interrupt handler */
+    struct sdmmc_host_response* resp;
+    unsigned resp_length;
+    void* data_buf;
+    unsigned data_len;
+    bool data_present;
+    bool data_write;
+    unsigned iflag_done;
+    volatile int status;
+    volatile int req_running;
+
+    /* Debounced card detect state */
+    volatile int card_present;
+    volatile int card_present_last;
+
+    struct semaphore cmd_done;
+    struct timeout cmd_tmo;
+    struct timeout cd_tmo;
+    struct sd_dma_desc dma_desc;
+} msc_drv;
+
+static msc_drv msc_drivers[MSC_COUNT];
+
+static void msc0_cd_interrupt(void);
+static void msc1_cd_interrupt(void);
 
 static const msc_config* msc_lookup_config(int msc)
 {
@@ -49,15 +110,6 @@ static const msc_config* msc_lookup_config(int msc)
             return &msc_configs[i];
     return NULL;
 }
-
-static msc_drv msc_drivers[MSC_COUNT];
-
-static void msc0_cd_interrupt(void);
-static void msc1_cd_interrupt(void);
-
-/* ---------------------------------------------------------------------------
- * Initialization
- */
 
 static void msc_gate_clock(int msc, bool gate)
 {
@@ -73,109 +125,7 @@ static void msc_gate_clock(int msc, bool gate)
         REG_CPM_CLKGR &= ~bit;
 }
 
-static void msc_init_one(msc_drv* d, int msc)
-{
-    /* Lookup config */
-    d->drive_nr = -1;
-    d->config = msc_lookup_config(msc);
-    if(!d->config) {
-        d->msc_nr = -1;
-        return;
-    }
-
-    /* Initialize driver state */
-    d->msc_nr = msc;
-    d->driver_flags = 0;
-    d->clk_status = 0;
-    d->cmdat_def = jz_orf(MSC_CMDAT, RTRG_V(GE32), TTRG_V(LE32));
-    d->req = NULL;
-    d->iflag_done = 0;
-    d->card_present = 1;
-    d->card_present_last = 1;
-    d->req_running = 0;
-    mutex_init(&d->lock);
-    semaphore_init(&d->cmd_done, 1, 0);
-
-    /* Ensure correct clock source */
-    msc_soc_init_clock(msc);
-
-    /* Initialize the hardware */
-    msc_gate_clock(msc, false);
-    msc_full_reset(d);
-    system_enable_irq(msc == 0 ? IRQ_MSC0 : IRQ_MSC1);
-
-    /* Setup the card detect IRQ */
-    if(d->config->cd_gpio != GPIO_NONE) {
-        if(gpio_get_level(d->config->cd_gpio) != d->config->cd_active_level) {
-            d->card_present = 0;
-            d->card_present_last = 0;
-        }
-
-        system_set_irq_handler(GPIO_TO_IRQ(d->config->cd_gpio),
-                               msc == 0 ? msc0_cd_interrupt : msc1_cd_interrupt);
-        gpio_set_function(d->config->cd_gpio, GPIOF_IRQ_EDGE(1));
-        gpio_flip_edge_irq(d->config->cd_gpio);
-        gpio_enable_irq(d->config->cd_gpio);
-    }
-}
-
-void msc_init(void)
-{
-    /* Only do this once -- each storage subsystem calls us in its init */
-    static bool done = false;
-    if(done)
-        return;
-    done = true;
-
-    /* Set up each MSC driver according to msc_configs */
-    for(int i = 0; i < MSC_COUNT; ++i)
-        msc_init_one(&msc_drivers[i], i);
-}
-
-msc_drv* msc_get(int type, int index)
-{
-    for(int i = 0, m = 0; i < MSC_COUNT; ++i) {
-        if(msc_drivers[i].config == NULL)
-            continue;
-        if(type == MSC_TYPE_ANY || msc_drivers[i].config->msc_type == type)
-            if(index == m++)
-                return &msc_drivers[i];
-    }
-
-    return NULL;
-}
-
-msc_drv* msc_get_by_drive(int drive_nr)
-{
-    for(int i = 0; i < MSC_COUNT; ++i)
-        if(msc_drivers[i].drive_nr == drive_nr)
-            return &msc_drivers[i];
-    return NULL;
-}
-
-void msc_lock(msc_drv* d)
-{
-    mutex_lock(&d->lock);
-}
-
-void msc_unlock(msc_drv* d)
-{
-    mutex_unlock(&d->lock);
-}
-
-void msc_full_reset(msc_drv* d)
-{
-    msc_lock(d);
-    msc_set_clock_mode(d, MSC_CLK_AUTOMATIC);
-    msc_set_speed(d, MSC_SPEED_INIT);
-    msc_set_width(d, 1);
-    msc_ctl_reset(d);
-    d->driver_flags = 0;
-    memset(&d->cardinfo, 0, sizeof(tCardInfo));
-    msc_unlock(d);
-}
-
-bool msc_card_detect(msc_drv* d)
+static bool msc_card_detect(msc_drv* d)
 {
     if(d->config->cd_gpio == GPIO_NONE)
         return true;
@@ -183,7 +133,7 @@ bool msc_card_detect(msc_drv* d)
     return gpio_get_level(d->config->cd_gpio) == d->config->cd_active_level;
 }
 
-void msc_led_trigger(void)
+static void msc_led_trigger(void)
 {
     bool state = false;
     for(int i = 0; i < MSC_COUNT; ++i)
@@ -194,10 +144,10 @@ void msc_led_trigger(void)
 }
 
 /* ---------------------------------------------------------------------------
- * Controller API
+ * Controller setup
  */
 
-void msc_ctl_reset(msc_drv* d)
+static void msc_ctl_reset(msc_drv* d)
 {
     /* Ingenic code suggests a reset changes clkrt */
     int clkrt = REG_MSC_CLKRT(d->msc_nr);
@@ -214,13 +164,9 @@ void msc_ctl_reset(msc_drv* d)
         sleep(1);
     }
 
-    /* Ensure the clock state is as expected */
-    if(d->clk_status & MSC_CLKST_AUTO)
-        jz_writef(MSC_LPM(d->msc_nr), ENABLE(1));
-    else if(d->clk_status & MSC_CLKST_ENABLE)
-        jz_overwritef(MSC_CTRL(d->msc_nr), CLOCK_V(START));
-    else
-        jz_overwritef(MSC_CTRL(d->msc_nr), CLOCK_V(STOP));
+    /* Let the controller gate the bus clock while the bus is idle */
+    jz_writef(MSC_CTRL(d->msc_nr), CLOCK_V(STOP));
+    jz_writef(MSC_LPM(d->msc_nr), ENABLE(1));
 
     /* Clear and mask interrupts */
     REG_MSC_IMASK(d->msc_nr) = 0xffffffff;
@@ -230,71 +176,35 @@ void msc_ctl_reset(msc_drv* d)
     REG_MSC_CLKRT(d->msc_nr) = clkrt;
 }
 
-void msc_set_clock_mode(msc_drv* d, int mode)
+static unsigned msc_clock_rate(uint32_t clock)
 {
-    int cur_mode = (d->clk_status & MSC_CLKST_AUTO) ? MSC_CLK_AUTOMATIC
-                                                    : MSC_CLK_MANUAL;
-    if(mode == cur_mode)
-        return;
-
-    d->clk_status &= ~MSC_CLKST_ENABLE;
-    if(mode == MSC_CLK_AUTOMATIC) {
-        d->clk_status |= MSC_CLKST_AUTO;
-        jz_writef(MSC_CTRL(d->msc_nr), CLOCK_V(STOP));
-        jz_writef(MSC_LPM(d->msc_nr), ENABLE(1));
-    } else {
-        d->clk_status &= ~MSC_CLKST_AUTO;
-        jz_writef(MSC_LPM(d->msc_nr), ENABLE(0));
-        jz_writef(MSC_CTRL(d->msc_nr), CLOCK_V(STOP));
+    switch(clock) {
+    case SDMMC_BUS_CLOCK_400KHZ: return MSC_SPEED_INIT;
+    case SDMMC_BUS_CLOCK_25MHZ:  return MSC_SPEED_FAST;
+    case SDMMC_BUS_CLOCK_50MHZ:  return MSC_SPEED_HIGH;
+    default: panicf("%s: bad clock", __func__);
     }
 }
 
-void msc_enable_clock(msc_drv* d, bool enable)
+static void msc_apply_bus_clock(msc_drv* d)
 {
-    if(d->clk_status & MSC_CLKST_AUTO)
-        return;
-
-    bool is_enabled = (d->clk_status & MSC_CLKST_ENABLE);
-    if(enable == is_enabled)
-        return;
-
-    if(enable) {
-        jz_writef(MSC_CTRL(d->msc_nr), CLOCK_V(START));
-        d->clk_status |= MSC_CLKST_ENABLE;
-    } else {
-        jz_writef(MSC_CTRL(d->msc_nr), CLOCK_V(STOP));
-        d->clk_status &= ~MSC_CLKST_ENABLE;
-    }
-}
-
-void msc_set_speed(msc_drv* d, int rate)
-{
-    /* Shut down clock while we change frequencies */
-    if(d->clk_status & MSC_CLKST_ENABLE)
-        jz_writef(MSC_CTRL(d->msc_nr), CLOCK_V(STOP));
+    unsigned rate = msc_clock_rate(d->bus_clock);
 
     /* Wait for clock to go idle */
     while(jz_readf(MSC_STAT(d->msc_nr), CLOCK_EN))
         sleep(1);
 
     /* freq1 is output by the SOC clock divider; freq2 by MSC_CLKRT */
-    uint32_t freq1 = rate;
-    uint32_t freq2 = rate;
-    if(freq1 < MSC_SPEED_FAST)
-        freq1 = MSC_SPEED_FAST;
+    unsigned freq1 = rate < MSC_SPEED_FAST ? MSC_SPEED_FAST : rate;
+    unsigned in_freq = msc_soc_set_clock(d->msc_nr, freq1);
 
-    /* Handle the SOC clock divider */
-    uint32_t in_freq = msc_soc_set_clock(d->msc_nr, freq1);
-
-    /* Handle MSC_CLKRT */
-    uint32_t clkrt = clk_calc_shift(in_freq, freq2);
+    unsigned clkrt = clk_calc_shift(in_freq, rate);
     REG_MSC_CLKRT(d->msc_nr) = clkrt;
 
     /* Handle frequency dependent timing settings
      * TODO - these settings might be SD specific...
      */
-    uint32_t out_freq = in_freq >> clkrt;
-    if(out_freq > MSC_SPEED_FAST) {
+    if((in_freq >> clkrt) > MSC_SPEED_FAST) {
         jz_writef(MSC_LPM(d->msc_nr),
                   DRV_SEL_V(RISE_EDGE_DELAY_QTR_PHASE),
                   SMP_SEL_V(RISE_EDGE_DELAYED));
@@ -305,25 +215,10 @@ void msc_set_speed(msc_drv* d, int rate)
                   SMP_SEL_V(RISE_EDGE));
         jz_writef(MSC_CTRL2(d->msc_nr), SPEED_V(DEFAULT));
     }
-
-    /* Restart clock if it was running before */
-    if(d->clk_status & MSC_CLKST_ENABLE)
-        jz_writef(MSC_CTRL(d->msc_nr), CLOCK_V(START));
-}
-
-void msc_set_width(msc_drv* d, int width)
-{
-    /* Bus width is controlled per command with MSC_CMDAT. */
-    if(width == 8)
-        jz_vwritef(d->cmdat_def, MSC_CMDAT, BUS_WIDTH_V(8BIT));
-    else if(width == 4)
-        jz_vwritef(d->cmdat_def, MSC_CMDAT, BUS_WIDTH_V(4BIT));
-    else
-        jz_vwritef(d->cmdat_def, MSC_CMDAT, BUS_WIDTH_V(1BIT));
 }
 
 /* ---------------------------------------------------------------------------
- * Request API
+ * Request handling
  */
 
 /* Note -- this must only be called with IRQs disabled */
@@ -331,10 +226,10 @@ static void msc_finish_request(msc_drv* d, int status)
 {
     REG_MSC_IMASK(d->msc_nr) = 0xffffffff;
     REG_MSC_IFLAG(d->msc_nr) = 0xffffffff;
-    if(d->req->flags & MSC_RF_DATA)
+    if(d->data_present)
         jz_writef(MSC_DMAC(d->msc_nr), ENABLE(0));
 
-    d->req->status = status;
+    d->status = status;
     d->req_running = 0;
     d->iflag_done = 0;
 
@@ -346,69 +241,272 @@ static void msc_finish_request(msc_drv* d, int status)
 static int msc_req_timeout(struct timeout* tmo)
 {
     msc_drv* d = (msc_drv*)tmo->data;
-    msc_async_abort(d, MSC_REQ_LOCKUP);
+    int irq = disable_irq_save();
+
+    if(d->req_running) {
+        logf("msc%d: command lockup", d->msc_nr);
+        msc_finish_request(d, SDMMC_STATUS_ERROR);
+    }
+
+    restore_irq(irq);
     return 0;
 }
 
-void msc_async_start(msc_drv* d, msc_req* r)
+static void msc_read_response(msc_drv* d)
 {
-    /* Determined needed cmdat and interrupts */
-    unsigned cmdat = d->cmdat_def;
-    d->iflag_done = jz_orm(MSC_IFLAG, END_CMD_RES);
+    uint32_t data[4] = {0};
+    unsigned res = REG_MSC_RES(d->msc_nr);
+    unsigned dat;
 
-    cmdat |= jz_orf(MSC_CMDAT, RESP_FMT(r->resptype & ~MSC_RESP_BUSY));
-    if(r->resptype & MSC_RESP_BUSY)
-        cmdat |= jz_orm(MSC_CMDAT, BUSY);
+    switch(d->resp_length) {
+    case SDMMC_RESP_SHORT:
+        dat = res << 24;
+        res = REG_MSC_RES(d->msc_nr);
+        dat |= res << 8;
+        res = REG_MSC_RES(d->msc_nr);
+        dat |= res & 0xff;
+        data[0] = dat;
+        break;
 
-    if(r->flags & MSC_RF_INIT)
-        cmdat |= jz_orm(MSC_CMDAT, INIT);
+    case SDMMC_RESP_LONG:
+        for(int i = 0; i < 4; ++i) {
+            dat = res << 24;
+            res = REG_MSC_RES(d->msc_nr);
+            dat |= res << 8;
+            res = REG_MSC_RES(d->msc_nr);
+            dat |= res >> 8;
+            data[i] = dat;
+        }
 
-    if(r->flags & MSC_RF_DATA) {
-        cmdat |= jz_orm(MSC_CMDAT, DATA_EN);
-        if(r->flags & MSC_RF_PROG)
-            d->iflag_done = jz_orm(MSC_IFLAG, WR_ALL_DONE);
-        else
-            d->iflag_done = jz_orm(MSC_IFLAG, DMA_DATA_DONE);
+        break;
+
+    default:
+        return;
     }
 
-    if(r->flags & MSC_RF_WRITE)
-        cmdat |= jz_orm(MSC_CMDAT, WRITE_READ);
+    /* The response FIFO is drained even when the caller does not want the
+     * data, otherwise it would be left for the next command to read. */
+    if(d->resp)
+        memcpy(d->resp->data, data, sizeof(data));
+}
 
-    if(r->flags & MSC_RF_AUTO_CMD12)
-        cmdat |= jz_orm(MSC_CMDAT, AUTO_CMD12);
+static void msc_interrupt(msc_drv* d)
+{
+    const unsigned tmo_bits = jz_orm(MSC_IFLAG, TIME_OUT_READ, TIME_OUT_RES);
+    const unsigned crc_bits = jz_orm(MSC_IFLAG, CRC_RES_ERROR,
+                                     CRC_READ_ERROR, CRC_WRITE_ERROR);
+    const unsigned err_bits = tmo_bits | crc_bits;
 
-    if(r->flags & MSC_RF_ABORT)
+    /* An interrupt can still arrive after the request was aborted */
+    if(!d->req_running)
+        return;
+
+    unsigned iflag = REG_MSC_IFLAG(d->msc_nr) & ~REG_MSC_IMASK(d->msc_nr);
+    bool handled = false;
+
+    /* In case card was removed */
+    if(!msc_card_detect(d)) {
+        msc_finish_request(d, SDMMC_STATUS_ERROR);
+        return;
+    }
+
+    /* Check for errors */
+    if(iflag & err_bits) {
+        int st;
+        if(iflag & crc_bits)
+            st = SDMMC_STATUS_INVALID_CRC;
+        else
+            st = SDMMC_STATUS_TIMEOUT;
+
+        msc_finish_request(d, st);
+        return;
+    }
+
+    /* Read the command response */
+    if(iflag & BM_MSC_IFLAG_END_CMD_RES) {
+        msc_read_response(d);
+        jz_writef(MSC_IMASK(d->msc_nr), END_CMD_RES(1));
+        jz_overwritef(MSC_IFLAG(d->msc_nr), END_CMD_RES(1));
+        handled = true;
+    }
+
+    /* Check if the "done" interrupt is signaled */
+    if(iflag & d->iflag_done) {
+        /* Discard after DMA in case of hardware cache prefetching.
+         * Only needed for read operations.
+         */
+        if(d->data_present && !d->data_write)
+            discard_dcache_range(d->data_buf, d->data_len);
+
+        msc_finish_request(d, SDMMC_STATUS_OK);
+        return;
+    }
+
+    if(!handled) {
+        panicf("msc%d: irq bug! iflag:%08x raw_iflag:%08lx imask:%08lx",
+               d->msc_nr, iflag, REG_MSC_IFLAG(d->msc_nr),
+               REG_MSC_IMASK(d->msc_nr));
+    }
+}
+
+/* ---------------------------------------------------------------------------
+ * sdmmc_host controller operations
+ */
+
+static void msc_set_power_enabled(void* controller, bool enable)
+{
+    msc_drv* d = controller;
+
+    /* None of these boards can switch the card supply, so a power cycle is
+     * a controller reset, which sdmmc_host says is good enough. */
+    msc_ctl_reset(d);
+    d->powered = enable;
+
+    if(enable) {
+        msc_apply_bus_clock(d);
+        d->send_init = true;
+    }
+}
+
+static void msc_set_bus_width(void* controller, uint32_t width)
+{
+    msc_drv* d = controller;
+
+    /* Bus width is controlled per command with MSC_CMDAT. */
+    if(width == SDMMC_BUS_WIDTH_8BIT)
+        jz_vwritef(d->cmdat_def, MSC_CMDAT, BUS_WIDTH_V(8BIT));
+    else if(width == SDMMC_BUS_WIDTH_4BIT)
+        jz_vwritef(d->cmdat_def, MSC_CMDAT, BUS_WIDTH_V(4BIT));
+    else
+        jz_vwritef(d->cmdat_def, MSC_CMDAT, BUS_WIDTH_V(1BIT));
+}
+
+static void msc_set_bus_clock(void* controller, uint32_t clock)
+{
+    msc_drv* d = controller;
+
+    d->bus_clock = clock;
+
+    /* A controller reset clears the timing registers, so a rate requested
+     * while the bus is powered down is only recorded here and programmed
+     * by set_power_enabled() after the reset. */
+    if(d->powered)
+        msc_apply_bus_clock(d);
+}
+
+static void msc_abort_command(void* controller)
+{
+    msc_drv* d = controller;
+    int irq = disable_irq_save();
+
+    if(d->req_running) {
+        logf("msc%d: abort", d->msc_nr);
+        msc_finish_request(d, SDMMC_STATUS_ERROR);
+    }
+
+    restore_irq(irq);
+}
+
+/* `io_abort` sets MSC_CMDAT[IO_ABORT], which tells the controller that this
+ * command terminates a data transfer that is still in progress.  A CMD12
+ * closing a transfer which ran to completion does not need it; PM 26.8.8 and
+ * 26.8.9 only call for it when stopping early.
+ */
+static int msc_do_command(msc_drv* d,
+                          const struct sdmmc_host_command* cmd,
+                          struct sdmmc_host_response* resp,
+                          bool io_abort)
+{
+    unsigned cmdat = d->cmdat_def;
+    unsigned iflag_done = jz_orm(MSC_IFLAG, END_CMD_RES);
+    bool has_data = SDMMC_DATA_PRESENT(cmd->flags);
+    bool is_write = SDMMC_DATA_DIR(cmd->flags) == SDMMC_DATA_WRITE;
+    unsigned data_len = cmd->nr_blocks * cmd->block_len;
+
+    /* RESP_FMT takes the SD response format number. R1, R6 and R7 are all
+     * 48-bit responses covered by a CRC and use format 1; R3 is the 48-bit
+     * response without one.
+     */
+    switch(SDMMC_RESP_LENGTH(cmd->flags)) {
+    case SDMMC_RESP_NONE:
+        break;
+
+    case SDMMC_RESP_SHORT:
+        if(cmd->flags & SDMMC_RESP_NOCRC)
+            cmdat |= jz_orf(MSC_CMDAT, RESP_FMT(3));
+        else
+            cmdat |= jz_orf(MSC_CMDAT, RESP_FMT(1));
+        break;
+
+    case SDMMC_RESP_LONG:
+        cmdat |= jz_orf(MSC_CMDAT, RESP_FMT(2));
+        break;
+
+    default:
+        panicf("%s: bad resp mode", __func__);
+    }
+
+    if(cmd->flags & SDMMC_RESP_BUSY)
+        cmdat |= jz_orm(MSC_CMDAT, BUSY);
+
+    if(d->send_init) {
+        cmdat |= jz_orm(MSC_CMDAT, INIT);
+        d->send_init = false;
+    }
+
+    if(io_abort)
         cmdat |= jz_orm(MSC_CMDAT, IO_ABORT);
+
+    if(has_data) {
+        cmdat |= jz_orm(MSC_CMDAT, DATA_EN);
+        if(is_write) {
+            cmdat |= jz_orm(MSC_CMDAT, WRITE_READ);
+            iflag_done = jz_orm(MSC_IFLAG, WR_ALL_DONE);
+        } else {
+            iflag_done = jz_orm(MSC_IFLAG, DMA_DATA_DONE);
+        }
+    }
 
     unsigned imask = jz_orm(MSC_IMASK,
                             CRC_RES_ERROR, CRC_READ_ERROR, CRC_WRITE_ERROR,
                             TIME_OUT_RES, TIME_OUT_READ, END_CMD_RES);
-    imask |= d->iflag_done;
+    imask |= iflag_done;
+
+    /* Publish the state the interrupt handler needs before the controller
+     * is programmed, so it always sees a consistent request. */
+    d->resp = resp;
+    d->resp_length = SDMMC_RESP_LENGTH(cmd->flags);
+    d->data_buf = cmd->buffer;
+    d->data_len = data_len;
+    d->data_present = has_data;
+    d->data_write = is_write;
+    d->iflag_done = iflag_done;
+    d->status = SDMMC_STATUS_OK;
 
     /* Program the controller */
-    if(r->flags & MSC_RF_DATA) {
-        REG_MSC_NOB(d->msc_nr) = r->nr_blocks;
-        REG_MSC_BLKLEN(d->msc_nr) = r->block_len;
+    if(has_data) {
+        REG_MSC_NOB(d->msc_nr) = cmd->nr_blocks;
+        REG_MSC_BLKLEN(d->msc_nr) = cmd->block_len;
     }
 
-    REG_MSC_CMD(d->msc_nr) = r->command;
-    REG_MSC_ARG(d->msc_nr) = r->argument;
+    REG_MSC_CMD(d->msc_nr) = cmd->command;
+    REG_MSC_ARG(d->msc_nr) = cmd->argument;
     REG_MSC_CMDAT(d->msc_nr) = cmdat;
 
     REG_MSC_IFLAG(d->msc_nr) = imask;
     REG_MSC_IMASK(d->msc_nr) &= ~imask;
 
-    if(r->flags & MSC_RF_DATA) {
+    if(has_data) {
         d->dma_desc.nda = 0;
-        d->dma_desc.mem = PHYSADDR(r->data);
-        d->dma_desc.len = r->nr_blocks * r->block_len;
+        d->dma_desc.mem = PHYSADDR(cmd->buffer);
+        d->dma_desc.len = data_len;
         d->dma_desc.cmd = 2; /* ID=0, ENDI=1, LINK=0 */
         commit_dcache_range(&d->dma_desc, sizeof(d->dma_desc));
 
-        if(r->flags & MSC_RF_WRITE)
-            commit_dcache_range(r->data, d->dma_desc.len);
+        if(is_write)
+            commit_dcache_range(cmd->buffer, data_len);
         else
-            discard_dcache_range(r->data, d->dma_desc.len);
+            discard_dcache_range(cmd->buffer, data_len);
 
         /* Unaligned address for DMA doesn't seem to work correctly.
          * FAT FS driver should ensure proper alignment of all buffers,
@@ -424,180 +522,58 @@ void msc_async_start(msc_drv* d, msc_req* r)
     }
 
     /* Begin processing */
-    d->req = r;
     d->req_running = 1;
     msc_led_trigger();
     jz_writef(MSC_CTRL(d->msc_nr), START_OP(1));
-    if(r->flags & MSC_RF_DATA)
+    if(has_data)
         jz_writef(MSC_DMAC(d->msc_nr), ENABLE(1));
 
-    /* TODO: calculate a suitable lower value for the lockup timeout.
-     *
-     * The SD spec defines timings based on the number of blocks transferred,
-     * see sec. 4.6.2 "Read, write, and erase timeout conditions". This should
-     * reduce the long delays which happen if errors occur.
-     *
-     * Also need to check if registers MSC_RDTO / MSC_RESTO are correctly set.
-     */
-    timeout_register(&d->cmd_tmo, msc_req_timeout, 10*HZ, (intptr_t)d);
-}
+    timeout_register(&d->cmd_tmo, msc_req_timeout, COMMAND_TIMEOUT,
+                     (intptr_t)d);
+    semaphore_wait(&d->cmd_done, TIMEOUT_BLOCK);
 
-void msc_async_abort(msc_drv* d, int status)
-{
-    int irq = disable_irq_save();
-    if(d->req_running) {
-        logf("msc%d: async abort status:%d", d->msc_nr, status);
-        msc_finish_request(d, status);
-    }
+    int status = d->status;
+    if(status != SDMMC_STATUS_OK) {
+        logf("msc%d: err:%d, cmd%d, arg:%x", d->msc_nr, status,
+             cmd->command, cmd->argument);
 
-    restore_irq(irq);
-}
+        /* The transfer was left in progress, so it has to be stopped as the
+         * SD spec requires; the controller will not do it for us.  There is
+         * no point trying if the card is the thing that went away.
+         *
+         * Recursion depth is limited to one because CMD12 carries no data.
+         */
+        if(has_data && msc_card_detect(d)) {
+            static const struct sdmmc_host_command cmd12 = {
+                .command = SD_STOP_TRANSMISSION,
+                .flags   = SDMMC_RESP_SHORT | SDMMC_RESP_BUSY,
+            };
 
-int msc_async_wait(msc_drv* d, int timeout)
-{
-    if(semaphore_wait(&d->cmd_done, timeout) == OBJ_WAIT_TIMEDOUT)
-        return MSC_REQ_INCOMPLETE;
-
-    return d->req->status;
-}
-
-int msc_request(msc_drv* d, msc_req* r)
-{
-    msc_async_start(d, r);
-    return msc_async_wait(d, TIMEOUT_BLOCK);
-}
-
-/* ---------------------------------------------------------------------------
- * Command response handling
- */
-
-static void msc_read_response(msc_drv* d)
-{
-    unsigned res = REG_MSC_RES(d->msc_nr);
-    unsigned dat;
-    switch(d->req->resptype) {
-    case MSC_RESP_R1:
-    case MSC_RESP_R1B:
-    case MSC_RESP_R3:
-    case MSC_RESP_R6:
-    case MSC_RESP_R7:
-        dat = res << 24;
-        res = REG_MSC_RES(d->msc_nr);
-        dat |= res << 8;
-        res = REG_MSC_RES(d->msc_nr);
-        dat |= res & 0xff;
-        d->req->response[0] = dat;
-        break;
-
-    case MSC_RESP_R2:
-        for(int i = 0; i < 4; ++i) {
-            dat = res << 24;
-            res = REG_MSC_RES(d->msc_nr);
-            dat |= res << 8;
-            res = REG_MSC_RES(d->msc_nr);
-            dat |= res >> 8;
-            d->req->response[i] = dat;
-        }
-
-        break;
-
-    default:
-        return;
-    }
-}
-
-static int msc_check_sd_response(msc_drv* d)
-{
-    if(d->req->resptype == MSC_RESP_R1 ||
-       d->req->resptype == MSC_RESP_R1B) {
-        if(d->req->response[0] & SD_R1_CARD_ERROR) {
-            logf("msc%d: R1 card error: %08x", d->msc_nr, d->req->response[0]);
-            return MSC_REQ_CARD_ERR;
+            msc_do_command(d, &cmd12, NULL, true);
         }
     }
 
-    return MSC_REQ_SUCCESS;
+    return status;
 }
 
-static int msc_check_response(msc_drv* d)
+static int msc_submit_command(void* controller,
+                              const struct sdmmc_host_command* cmd,
+                              struct sdmmc_host_response* resp)
 {
-    switch(d->config->msc_type) {
-    case MSC_TYPE_SD:
-        return msc_check_sd_response(d);
-    default:
-        /* TODO - implement msc_check_response for MMC and CE-ATA */
-        return 0;
-    }
+    return msc_do_command(controller, cmd, resp, false);
 }
+
+static const struct sdmmc_controller_ops msc_ops = {
+    .set_power_enabled = msc_set_power_enabled,
+    .set_bus_width     = msc_set_bus_width,
+    .set_bus_clock     = msc_set_bus_clock,
+    .submit_command    = msc_submit_command,
+    .abort_command     = msc_abort_command,
+};
 
 /* ---------------------------------------------------------------------------
  * Interrupt handlers
  */
-
-static void msc_interrupt(msc_drv* d)
-{
-    const unsigned tmo_bits = jz_orm(MSC_IFLAG, TIME_OUT_READ, TIME_OUT_RES);
-    const unsigned crc_bits = jz_orm(MSC_IFLAG, CRC_RES_ERROR,
-                                     CRC_READ_ERROR, CRC_WRITE_ERROR);
-    const unsigned err_bits = tmo_bits | crc_bits;
-
-    unsigned iflag = REG_MSC_IFLAG(d->msc_nr) & ~REG_MSC_IMASK(d->msc_nr);
-    bool handled = false;
-
-    /* In case card was removed */
-    if(!msc_card_detect(d)) {
-        msc_finish_request(d, MSC_REQ_EXTRACTED);
-        return;
-    }
-
-    /* Check for errors */
-    if(iflag & err_bits) {
-        int st;
-        if(iflag & crc_bits)
-            st = MSC_REQ_CRC_ERR;
-        else if(iflag & tmo_bits)
-            st = MSC_REQ_TIMEOUT;
-        else
-            st = MSC_REQ_ERROR;
-
-        msc_finish_request(d, st);
-        return;
-    }
-
-    /* Read and check the command response */
-    if(iflag & BM_MSC_IFLAG_END_CMD_RES) {
-        msc_read_response(d);
-        int st = msc_check_response(d);
-        if(st == MSC_REQ_SUCCESS) {
-            jz_writef(MSC_IMASK(d->msc_nr), END_CMD_RES(1));
-            jz_overwritef(MSC_IFLAG(d->msc_nr), END_CMD_RES(1));
-            handled = true;
-        } else {
-            msc_finish_request(d, st);
-            return;
-        }
-    }
-
-    /* Check if the "done" interrupt is signaled */
-    if(iflag & d->iflag_done) {
-        /* Discard after DMA in case of hardware cache prefetching.
-         * Only needed for read operations.
-         */
-        if((d->req->flags & MSC_RF_DATA) != 0 &&
-           (d->req->flags & MSC_RF_WRITE) == 0) {
-            discard_dcache_range(d->req->data,
-                                 d->req->block_len * d->req->nr_blocks);
-        }
-
-        msc_finish_request(d, MSC_REQ_SUCCESS);
-        return;
-    }
-
-    if(!handled) {
-        panicf("msc%d: irq bug! iflag:%08x raw_iflag:%08lx imask:%08lx",
-               d->msc_nr, iflag, REG_MSC_IFLAG(d->msc_nr), REG_MSC_IMASK(d->msc_nr));
-    }
-}
 
 static int msc_cd_callback(struct timeout* tmo)
 {
@@ -611,16 +587,16 @@ static int msc_cd_callback(struct timeout* tmo)
         return DEBOUNCE_TIME;
     }
 
-    /* If there is a change, then broadcast the hotswap event */
+    /* If there is a change, then tell sdmmc_host about it */
     if(now_present != d->card_present) {
-        if(now_present) {
-            d->card_present = 1;
-            queue_broadcast(SYS_HOTSWAP_INSERTED, d->drive_nr);
-        } else {
-            msc_async_abort(d, MSC_REQ_EXTRACTED);
-            d->card_present = 0;
-            queue_broadcast(SYS_HOTSWAP_EXTRACTED, d->drive_nr);
-        }
+        d->card_present = now_present;
+
+        /* Don't leave a command waiting on a card which is gone; sdmmc_host
+         * aborts too, but only once the storage thread picks the event up. */
+        if(!now_present)
+            msc_abort_command(d);
+
+        sdmmc_host_set_medium_present(&d->host, now_present != 0);
     }
 
     return 0;
@@ -657,224 +633,64 @@ static void msc1_cd_interrupt(void)
 }
 
 /* ---------------------------------------------------------------------------
- * SD command helpers
+ * Initialization
  */
 
-int msc_cmd_exec(msc_drv* d, msc_req* r)
+static void msc_init_one(msc_drv* d, int msc)
 {
-    int status = msc_request(d, r);
-    if(status == MSC_REQ_SUCCESS)
-        return status;
-    else if(status == MSC_REQ_LOCKUP || status == MSC_REQ_EXTRACTED)
-        d->driver_flags |= MSC_DF_ERRSTATE;
-    else if(r->flags & (MSC_RF_ERR_CMD12|MSC_RF_AUTO_CMD12)) {
-        /* After an error, the controller does not automatically issue CMD12,
-         * so we need to send it if it's needed, as required by the SD spec.
-         */
-        msc_req nreq = {0};
-        nreq.command = SD_STOP_TRANSMISSION;
-        nreq.resptype = MSC_RESP_R1B;
-        nreq.flags = MSC_RF_ABORT;
-        logf("msc%d: cmd%d error, sending cmd12", d->msc_nr, r->command);
-        if(msc_cmd_exec(d, &nreq))
-            d->driver_flags |= MSC_DF_ERRSTATE;
+    /* Lookup config */
+    d->config = msc_lookup_config(msc);
+    if(!d->config) {
+        d->msc_nr = -1;
+        return;
     }
 
-    logf("msc%d: err:%d, cmd%d, arg:%x", d->msc_nr, status,
-         r->command, r->argument);
-    return status;
-}
+    /* Initialize driver state */
+    d->msc_nr = msc;
+    d->cmdat_def = jz_orf(MSC_CMDAT, RTRG_V(GE32), TTRG_V(LE32));
+    d->bus_clock = SDMMC_BUS_CLOCK_400KHZ;
+    d->card_present = 1;
+    d->card_present_last = 1;
+    semaphore_init(&d->cmd_done, 1, 0);
 
-int msc_app_cmd_exec(msc_drv* d, msc_req* r)
-{
-    msc_req areq = {0};
-    areq.command = SD_APP_CMD;
-    areq.argument = d->cardinfo.rca;
-    areq.resptype = MSC_RESP_R1;
-    if(msc_cmd_exec(d, &areq))
-        return areq.status;
+    /* Ensure correct clock source */
+    msc_soc_init_clock(msc);
 
-    /* Verify that CMD55 was accepted */
-    if((areq.response[0] & (1 << 5)) == 0)
-        return MSC_REQ_ERROR;
+    /* Initialize the hardware */
+    msc_gate_clock(msc, false);
+    msc_ctl_reset(d);
+    system_enable_irq(msc == 0 ? IRQ_MSC0 : IRQ_MSC1);
 
-    return msc_cmd_exec(d, r);
-}
+    /* Setup the card detect IRQ */
+    if(d->config->cd_gpio != GPIO_NONE) {
+        if(gpio_get_level(d->config->cd_gpio) != d->config->cd_active_level) {
+            d->card_present = 0;
+            d->card_present_last = 0;
+        }
 
-int msc_cmd_go_idle_state(msc_drv* d)
-{
-    msc_req req = {0};
-    req.command = SD_GO_IDLE_STATE;
-    req.resptype = MSC_RESP_NONE;
-    req.flags = MSC_RF_INIT;
-    return msc_cmd_exec(d, &req);
-}
-
-int msc_cmd_send_if_cond(msc_drv* d)
-{
-    msc_req req = {0};
-    req.command = SD_SEND_IF_COND;
-    req.argument = 0x1aa;
-    req.resptype = MSC_RESP_R7;
-
-    /* TODO - Check if SEND_IF_COND timeout is really an error
-     * IIRC, this can occur if the card isn't HCS (old cards < 2 GiB).
-     */
-    if(msc_cmd_exec(d, &req))
-        return req.status;
-
-    /* Set HCS bit if the card responds correctly */
-    if((req.response[0] & 0xff) == 0xaa)
-        d->driver_flags |= MSC_DF_HCS_CARD;
-
-    return MSC_REQ_SUCCESS;
-}
-
-int msc_cmd_app_op_cond(msc_drv* d)
-{
-    msc_req req = {0};
-    req.command = SD_APP_OP_COND;
-    req.argument = 0x00300000; /* 3.4 - 3.6 V */
-    req.resptype = MSC_RESP_R3;
-    if(d->driver_flags & MSC_DF_HCS_CARD)
-        req.argument |= (1 << 30);
-
-    int timeout = 2 * HZ;
-    do {
-        if(msc_app_cmd_exec(d, &req))
-            return req.status;
-        if(req.response[0] & (1 << 31))
-            break;
-        sleep(1);
-    } while(--timeout > 0);
-
-    if(timeout == 0)
-        return MSC_REQ_TIMEOUT;
-
-    return MSC_REQ_SUCCESS;
-}
-
-int msc_cmd_all_send_cid(msc_drv* d)
-{
-    msc_req req = {0};
-    req.command = SD_ALL_SEND_CID;
-    req.resptype = MSC_RESP_R2;
-    if(msc_cmd_exec(d, &req))
-        return req.status;
-
-    for(int i = 0; i < 4; ++i)
-        d->cardinfo.cid[i] = req.response[i];
-
-    return MSC_REQ_SUCCESS;
-}
-
-int msc_cmd_send_rca(msc_drv* d)
-{
-    msc_req req = {0};
-    req.command = SD_SEND_RELATIVE_ADDR;
-    req.resptype = MSC_RESP_R6;
-    if(msc_cmd_exec(d, &req))
-        return req.status;
-
-    d->cardinfo.rca = req.response[0] & 0xffff0000;
-    return MSC_REQ_SUCCESS;
-}
-
-int msc_cmd_send_csd(msc_drv* d)
-{
-    msc_req req = {0};
-    req.command = SD_SEND_CSD;
-    req.argument = d->cardinfo.rca;
-    req.resptype = MSC_RESP_R2;
-    if(msc_cmd_exec(d, &req))
-        return req.status;
-
-    for(int i = 0; i < 4; ++i)
-        d->cardinfo.csd[i] = req.response[i];
-    sd_parse_csd(&d->cardinfo);
-
-    if(d->cardinfo.sd2plus)
-        d->driver_flags |= MSC_DF_V2_CARD;
-
-    return 0;
-}
-
-int msc_cmd_select_card(msc_drv* d)
-{
-    msc_req req = {0};
-    req.command = SD_SELECT_CARD;
-    req.argument = d->cardinfo.rca;
-    req.resptype = MSC_RESP_R1B;
-    return msc_cmd_exec(d, &req);
-}
-
-int msc_cmd_set_bus_width(msc_drv* d, int width)
-{
-    /* TODO - must we check bus width is supported in the cardinfo? */
-    msc_req req = {0};
-    req.command = SD_SET_BUS_WIDTH;
-    req.resptype = MSC_RESP_R1;
-    switch(width) {
-    case 1: req.argument = 0; break;
-    case 4: req.argument = 2; break;
-    default: return MSC_REQ_ERROR;
+        system_set_irq_handler(GPIO_TO_IRQ(d->config->cd_gpio),
+                               msc == 0 ? msc0_cd_interrupt : msc1_cd_interrupt);
+        gpio_set_function(d->config->cd_gpio, GPIOF_IRQ_EDGE(1));
+        gpio_flip_edge_irq(d->config->cd_gpio);
+        gpio_enable_irq(d->config->cd_gpio);
     }
 
-    if(msc_app_cmd_exec(d, &req))
-        return req.status;
+    struct sdmmc_host_config host_config = {
+        .type          = d->config->storage_type,
+        .bus_voltages  = d->config->bus_voltages,
+        .bus_widths    = d->config->bus_widths,
+        .bus_clocks    = d->config->bus_clocks,
+        .max_nr_blocks = MSC_MAX_BLOCKS,
+        .is_removable  = d->config->cd_gpio != GPIO_NONE,
+    };
 
-    msc_set_width(d, width);
-    return MSC_REQ_SUCCESS;
+    sdmmc_host_init(&d->host, &host_config, &msc_ops, d);
+    if(host_config.is_removable)
+        sdmmc_host_init_medium_present(&d->host, d->card_present != 0);
 }
 
-int msc_cmd_set_clr_card_detect(msc_drv* d, int arg)
+void sdmmc_host_target_init(void)
 {
-    msc_req req = {0};
-    req.command = SD_SET_CLR_CARD_DETECT;
-    req.argument = arg;
-    req.resptype = MSC_RESP_R1;
-    return msc_app_cmd_exec(d, &req);
-}
-
-int msc_cmd_switch_freq(msc_drv* d)
-{
-    /* If card doesn't support High Speed, we don't need to send a command */
-    if((d->driver_flags & MSC_DF_V2_CARD) == 0) {
-        msc_set_speed(d, MSC_SPEED_FAST);
-        return MSC_REQ_SUCCESS;
-    }
-
-    /* Try switching to High Speed (50 MHz) */
-    char buffer[64] CACHEALIGN_ATTR;
-    msc_req req = {0};
-    req.command = SD_SWITCH_FUNC;
-    req.argument = 0x80fffff1;
-    req.resptype = MSC_RESP_R1;
-    req.flags = MSC_RF_DATA;
-    req.data = &buffer[0];
-    req.block_len = 64;
-    req.nr_blocks = 1;
-    if(msc_cmd_exec(d, &req))
-        return req.status;
-
-    msc_set_speed(d, MSC_SPEED_HIGH);
-    return MSC_REQ_SUCCESS;
-}
-
-int msc_cmd_send_status(msc_drv* d)
-{
-    msc_req req = {0};
-    req.command = SD_SEND_STATUS;
-    req.argument = d->cardinfo.rca;
-    req.resptype = MSC_RESP_R1;
-    return msc_cmd_exec(d, &req);
-}
-
-int msc_cmd_set_block_len(msc_drv* d, unsigned len)
-{
-    msc_req req = {0};
-    req.command = SD_SET_BLOCKLEN;
-    req.argument = len;
-    req.resptype = MSC_RESP_R1;
-    return msc_cmd_exec(d, &req);
+    for(int i = 0; i < MSC_COUNT; ++i)
+        msc_init_one(&msc_drivers[i], i);
 }
