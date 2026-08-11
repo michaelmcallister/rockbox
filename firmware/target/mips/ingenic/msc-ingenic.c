@@ -24,12 +24,9 @@
 #include "panic.h"
 #include "led.h"
 #include "sdmmc_host.h"
+#include "ingenic-soc.h"
 #include "msc-ingenic.h"
 #include "gpio-ingenic.h"
-#include "irq-x1000.h"
-#include "clk-x1000.h"
-#include "x1000/msc.h"
-#include "x1000/cpm.h"
 #include <string.h>
 #include <stddef.h>
 
@@ -472,8 +469,8 @@ static int msc_do_command(msc_drv* d,
                             TIME_OUT_RES, TIME_OUT_READ, END_CMD_RES);
     imask |= iflag_done;
 
-    /* Publish the state the interrupt handler needs before the controller
-     * is programmed, so it always sees a consistent request. */
+    /* Set up the state the interrupt handler reads before the controller is
+     * programmed, so it always sees a consistent request. */
     d->resp = resp;
     d->resp_length = SDMMC_RESP_LENGTH(cmd->flags);
     d->data_buf = cmd->buffer;

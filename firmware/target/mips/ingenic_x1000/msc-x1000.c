@@ -37,8 +37,8 @@
 #endif
 
 /* All three X1000 players wire the microSD slot to MSC0 the same way, and
- * only the clock source above differs between them.  The voltage range is
- * the one the driver used to ask for in the ACMD41 argument.
+ * only the clock source above differs between them.  The two voltage bits
+ * are the OCR windows spanning the 3.3 V card supply.
  */
 const msc_config msc_configs[] = {
     {
