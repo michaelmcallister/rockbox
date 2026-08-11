@@ -23,7 +23,7 @@
 #include "sdmmc.h"
 #include "sd.h"
 #include "msc-x1000.h"
-#include "gpio-x1000.h"
+#include "gpio-ingenic.h"
 #include <string.h>
 
 /* #define LOGF_ENABLE */
