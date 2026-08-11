@@ -1,0 +1,1525 @@
+// Register definitions for the Ingenic X1000.
+//
+// Translated from utils/reggen-ng/x1000.reggen, the description the
+// checked-in headers were generated from.
+
+LCD @ 0xb3050000 : block {
+    CFG @ 0x00 : reg {
+        -- 17 INVDAT
+    }
+
+    CTRL @ 0x30 : reg {
+        30 28 BURST : enum { 0 = 4WORD; 1 = 8WORD; 2 = 16WORD; 3 = 32WORD; 4 = 64WORD }
+        -- 13 EOFM
+        -- 12 SOFM
+        -- 10 IFUM
+        -- 07 QDM
+        -- 06 BEDN
+        -- 05 PEDN
+        -- 03 ENABLE
+        02 00 BPP : enum { 4 = 15BIT_OR_16BIT; 5 = 18BIT_OR_24BIT; 6 = 24BIT_COMPRESSED; 7 = 30BIT }
+    }
+
+    STATE @ 0x34 : reg {
+        -- 07 QD
+        -- 05 EOF
+        -- 04 SOF
+        -- 02 IFU
+    }
+
+    OSDCTRL @ 0x104 : reg
+
+    BGC @ 0x10c : reg
+
+    DAH @ 0x10 : reg
+
+    DAV @ 0x14 : reg
+
+    VAT @ 0x0c : reg
+
+    VSYNC @ 0x04 : reg
+
+    HSYNC @ 0x08 : reg
+
+    IID @ 0x38 : reg
+
+    DA @ 0x40 : reg
+
+    MCFG @ 0xa0 : reg {
+        09 08 CWIDTH : enum { 0 = 16BIT_OR_9BIT; 1 = 8BIT; 2 = 18BIT; 3 = 24BIT }
+    }
+
+    MCFG_NEW @ 0xb8 : reg {
+        15 13 DWIDTH : enum { 0 = 8BIT; 1 = 9BIT; 2 = 16BIT; 3 = 18BIT; 4 = 24BIT }
+        -- 11 6800_MODE
+        -- 10 CMD_9BIT
+        09 08 DTIMES : enum { 0 = 1TIME; 1 = 2TIME; 2 = 3TIME }
+        -- 05 CSPLY
+        -- 04 RSPLY
+        -- 03 CLKPLY
+        -- 02 DTYPE : enum { 0 = PARALLEL; 1 = SERIAL }
+        -- 01 CTYPE : enum { 0 = PARALLEL; 1 = SERIAL }
+        -- 00 FMT_CONV
+    }
+
+    MCTRL @ 0xa4 : reg {
+        -- 10 NARROW_TE
+        -- 09 TE_INV
+        -- 08 NOT_USE_TE
+        -- 07 DCSI_SEL
+        -- 06 MIPI_SLCD
+        -- 04 FAST_MODE
+        -- 03 GATE_MASK
+        -- 02 DMA_MODE
+        -- 01 DMA_START
+        -- 00 DMA_TX_EN
+    }
+
+    MSTATE @ 0xa8 : reg {
+        31 16 LCD_ID
+        -- 00 BUSY
+    }
+
+    MDATA @ 0xac : reg {
+        31 30 TYPE : enum { 0 = DAT; 1 = CMD }
+        23 00 DATA
+    }
+
+    WTIME @ 0xb0 : reg {
+        31 24 DHTIME
+        23 16 DLTIME
+        15 08 CHTIME
+        07 00 CLTIME
+    }
+
+    TASH @ 0xb4 : reg {
+        15 08 TAH
+        07 00 TAS
+    }
+
+    SMWT @ 0xbc : reg
+}
+
+AIC @ 0xb0020000 : block {
+    CFG @ 0x00 : reg {
+        27 24 RFTH
+        20 16 TFTH
+        -- 12 MSB
+        -- 10 IBCKD
+        -- 09 ISYNCD
+        -- 08 DMODE
+        -- 07 CDC_SLAVE
+        -- 06 LSMP
+        -- 05 ICDC
+        -- 04 AUSEL
+        -- 03 RST
+        -- 02 BCKD
+        -- 01 SYNCD
+        -- 00 ENABLE
+    }
+
+    CCR @ 0x04 : reg {
+        -- 28 PACK16
+        26 24 CHANNEL : enum { 0 = MONO; 1 = STEREO }
+        21 19 OSS : enum { 0 = 8BIT; 1 = 16BIT; 2 = 18BIT; 3 = 20BIT; 4 = 24BIT }
+        18 16 ISS : enum { 0 = 8BIT; 1 = 16BIT; 2 = 18BIT; 3 = 20BIT; 4 = 24BIT }
+        -- 15 RDMS
+        -- 14 TDMS
+        -- 11 M2S
+        -- 10 ENDSW
+        -- 09 ASVTSU
+        -- 08 TFLUSH
+        -- 07 RFLUSH
+        -- 06 EROR
+        -- 05 ETUR
+        -- 04 ERFS
+        -- 03 ETFS
+        -- 02 ENLBF
+        -- 01 ERPL
+        -- 00 EREC
+    }
+
+    I2SCR @ 0x10 : reg {
+        -- 17 RFIRST
+        -- 16 SWLH
+        -- 13 ISTPBK
+        -- 12 STPBK
+        -- 04 ESCLK
+        -- 00 AMSL
+    }
+
+    SR @ 0x14 : reg {
+        29 24 RFL
+        13 08 TFL
+        -- 06 ROR
+        -- 05 TUR
+        -- 04 RFS
+        -- 03 TFS
+    }
+
+    I2SSR @ 0x1c : reg {
+        -- 05 CHBSY
+        -- 04 TBSY
+        -- 03 RBSY
+        -- 02 BSY
+    }
+
+    I2SDIV @ 0x30 : reg
+
+    DR @ 0x34 : reg
+
+    SPENA @ 0x80 : reg
+
+    SPCTRL @ 0x84 : reg {
+        -- 15 DMA_EN
+        -- 14 D_TYPE
+        -- 13 SIGN_N
+        -- 12 INVALID
+        -- 11 SFT_RST
+        -- 10 SPDIF_I2S
+        -- 01 M_TRIG
+        -- 00 M_FFUR
+    }
+
+    SPSTATE @ 0x88 : reg {
+        14 08 FIFO_LEVEL
+        -- 07 BUSY
+        -- 01 F_TRIG
+        -- 00 F_FFUR
+    }
+
+    SPCFG1 @ 0x8c : reg {
+        -- 17 INIT_LEVEL
+        -- 16 ZERO_VALID
+        13 12 TRIG
+        11 08 SRC_NUM
+        07 04 CH1_NUM
+        03 00 CH2_NUM
+    }
+
+    SPCFG2 @ 0x90 : reg {
+        29 26 FS
+        25 22 ORG_FRQ
+        21 19 SAMPL_WL
+        -- 18 MAX_WL
+        17 16 CLK_ACU
+        15 08 CAT_CODE
+        07 06 CH_MD
+        -- 03 PRE
+        -- 02 COPY_N
+        -- 01 AUDIO_N
+        -- 00 CON_PRO
+    }
+
+    SPFIFO @ 0x94 : reg
+
+    RGADW @ 0xa4 : reg {
+        -- 31 ICRST
+        -- 16 RGWR
+        14 08 ADDR
+        07 00 DATA
+    }
+
+    RGDATA @ 0xa8 : reg {
+        -- 08 IRQ
+        07 00 DATA
+    }
+}
+
+PCM @ 0xb0071000 : block {
+    CTL @ 0x00 : reg {
+        -- 09 ERDMA
+        -- 08 ETDMA
+        -- 07 LSMP
+        -- 06 ERPL
+        -- 05 EREC
+        -- 04 FLUSH
+        -- 03 RST
+        -- 01 CLKEN
+        -- 00 PCMEN
+    }
+
+    CFG @ 0x04 : reg {
+        14 13 SLOT
+        -- 12 ISS
+        -- 11 OSS
+        -- 10 IMSBPOS
+        -- 09 OMSBPOS
+        08 05 RFTH
+        04 01 TFTH
+        -- 00 PCMMOD
+    }
+
+    DP @ 0x08 : reg
+
+    INTC @ 0x0c : reg {
+        -- 03 ETFS
+        -- 02 ETUR
+        -- 01 ERFS
+        -- 00 EROR
+    }
+
+    INTS @ 0x10 : reg {
+        -- 14 RSTS
+        13 09 TFL
+        -- 08 TFS
+        -- 07 TUR
+        06 02 RFL
+        -- 01 RFS
+        -- 00 ROR
+    }
+
+    DIV @ 0x14 : reg {
+        16 11 SYNL
+        10 06 SYNDIV
+        05 00 CLKDIV
+    }
+}
+
+// note: incomplete, only lists registers used by DDR init code
+DDRC @ 0xb34f0000 : block {
+    STATUS @ 0x00 : reg
+
+    CFG @ 0x04 : reg
+
+    CTRL @ 0x08 : reg
+
+    TIMING1 @ 0x60 : reg
+
+    TIMING2 @ 0x64 : reg
+
+    TIMING3 @ 0x68 : reg
+
+    TIMING4 @ 0x6c : reg
+
+    TIMING5 @ 0x70 : reg
+
+    TIMING6 @ 0x74 : reg
+
+    REFCNT @ 0x18 : reg
+
+    MMAP0 @ 0x24 : reg
+
+    MMAP1 @ 0x28 : reg
+
+    DLP @ 0xbc : reg
+
+    REMAP1 @ 0x9c : reg
+
+    REMAP2 @ 0xa0 : reg
+
+    REMAP3 @ 0xa4 : reg
+
+    REMAP4 @ 0xa8 : reg
+
+    REMAP5 @ 0xac : reg
+
+    AUTOSR_CNT @ 0x308 : reg
+
+    AUTOSR_EN @ 0x304 : reg
+}
+
+// note: incomplete, only lists registers used by DDR init code
+DDRC_APB @ 0xb3012000 : block {
+    CLKSTP_CFG @ 0x68 : reg
+
+    PHYRST_CFG @ 0x80 : reg
+}
+
+// note: incomplete, only lists registers used by DDR init code
+DDRPHY @ 0xb3011000 : block {
+    PIR @ 0x04 : reg
+
+    PGCR @ 0x08 : reg
+
+    PGSR @ 0x0c : reg
+
+    DLLGCR @ 0x10 : reg
+
+    ACDLLCR @ 0x14 : reg
+
+    PTR0 @ 0x18 : reg
+
+    PTR1 @ 0x1c : reg
+
+    PTR2 @ 0x20 : reg
+
+    ACIOCR @ 0x24 : reg
+
+    DXCCR @ 0x28 : reg
+
+    DSGCR @ 0x2c : reg
+
+    DCR @ 0x30 : reg
+
+    DTPR0 @ 0x34 : reg
+
+    DTPR1 @ 0x38 : reg
+
+    DTPR2 @ 0x3c : reg
+
+    MR0 @ 0x40 : reg
+
+    MR1 @ 0x44 : reg
+
+    MR2 @ 0x48 : reg
+
+    MR3 @ 0x4c : reg
+
+    DTAR @ 0x54 : reg
+
+    DXGCR @ 0x1c0 [4; 0x40] : reg
+}
+
+SFC @ 0xb3440000 : block {
+    GLB @ 0x00 : reg {
+        -- 13 TRAN_DIR : enum { 0 = READ; 1 = WRITE }
+        12 07 THRESHOLD
+        -- 06 OP_MODE : enum { 0 = SLAVE; 1 = DMA }
+        05 03 PHASE_NUM
+        -- 02 WP_EN
+        01 00 BURST_MD : enum { 0 = INCR4; 1 = INCR8; 2 = INCR16; 3 = INCR32 }
+    }
+
+    DEV_CONF @ 0x04 : reg {
+        17 16 SMP_DELAY
+        -- 15 CMD_TYPE : enum { 0 = 8BITS; 1 = 16BITS }
+        14 13 STA_TYPE : enum { 0 = 1BYTE; 1 = 2BYTE; 2 = 3BYTE; 3 = 4BYTE }
+        12 11 THOLD
+        10 09 TSETUP
+        08 05 TSH
+        -- 04 CPHA
+        -- 03 CPOL
+        -- 02 CE_DL
+        -- 01 HOLD_DL
+        -- 00 WP_DL
+    }
+
+    DEV_STA_EXP @ 0x08 : reg
+
+    DEV_STA_RT @ 0x0c : reg
+
+    DEV_STA_MSK @ 0x10 : reg
+
+    TRAN_CONF @ 0x14 [6; 0x4] : reg {
+        31 29 MODE
+        28 26 ADDR_WIDTH
+        -- 25 POLL_EN
+        -- 24 CMD_EN
+        -- 23 PHASE_FMT
+        22 17 DUMMY_BITS
+        -- 16 DATA_EN
+        15 00 COMMAND
+    }
+
+    TRAN_LENGTH @ 0x2c : reg
+
+    DEV_ADDR @ 0x30 [6; 0x4] : reg
+
+    DEV_PLUS @ 0x48 [6; 0x40] : reg
+
+    MEM_ADDR @ 0x60 : reg
+
+    TRIG @ 0x64 : reg {
+        -- 02 FLUSH
+        -- 01 STOP
+        -- 00 START
+    }
+
+    SR @ 0x68 : reg {
+        22 16 FIFO_NUM
+        06 05 BUSY
+        -- 04 END
+        -- 03 TREQ
+        -- 02 RREQ
+        -- 01 OVER
+        -- 00 UNDER
+    }
+
+    SCR @ 0x6c : reg {
+        -- 04 CLR_END
+        -- 03 CLR_TREQ
+        -- 02 CLR_RREQ
+        -- 01 CLR_OVER
+        -- 00 CLR_UNDER
+    }
+
+    INTC @ 0x70 : reg {
+        -- 04 MSK_END
+        -- 03 MSK_TREQ
+        -- 02 MSK_RREQ
+        -- 01 MSK_OVER
+        -- 00 MSK_UNDER
+    }
+
+    FSM @ 0x74 : reg {
+        19 16 STATE_AHB
+        15 11 STATE_SPI
+        09 06 STATE_CLK
+        05 03 STATE_DMAC
+        02 00 STATE_RMC
+    }
+
+    CGE @ 0x78 : reg {
+        -- 05 SFC
+        -- 04 FIFO
+        -- 03 DMA
+        -- 02 RMC
+        -- 01 SPI
+        -- 00 REG
+    }
+
+    DATA @ 0x1000 : reg
+}
+
+CPM @ 0xb0000000 : block {
+    CCR @ 0x00 : reg {
+        31 30 SEL_SRC : enum { 0 = STOP; 1 = EXCLK; 2 = APLL }
+        29 28 SEL_CPLL : enum { 0 = STOP; 1 = SCLK_A; 2 = MPLL }
+        27 26 SEL_H0PLL : enum { 0 = STOP; 1 = SCLK_A; 2 = MPLL }
+        25 24 SEL_H2PLL : enum { 0 = STOP; 1 = SCLK_A; 2 = MPLL }
+        -- 23 GATE_SCLKA
+        -- 22 CE_CPU
+        -- 21 CE_AHB0
+        -- 20 CE_AHB2
+        19 16 PDIV
+        15 12 H2DIV
+        11 08 H0DIV
+        07 04 L2DIV
+        03 00 CDIV
+    }
+
+    CSR @ 0xd4 : reg {
+        -- 31 SRC_MUX
+        -- 30 CPU_MUX
+        -- 29 AHB0_MUX
+        -- 28 AHB2_MUX
+        -- 27 DDR_MUX
+        -- 02 H2DIV_BUSY
+        -- 01 H0DIV_BUSY
+        -- 00 CDIV_BUSY
+    }
+
+    DDRCDR @ 0x2c : reg {
+        31 30 CLKSRC : enum { 0 = STOP; 1 = SCLK_A; 2 = MPLL }
+        -- 29 CE
+        -- 28 BUSY
+        -- 27 STOP
+        -- 26 GATE_EN
+        -- 25 CHANGE_EN
+        -- 24 FLAG
+        03 00 CLKDIV
+    }
+
+    MACCDR @ 0x54 : reg {
+        -- 31 CLKSRC : enum { 0 = SCLK_A; 1 = MPLL }
+        -- 29 CE
+        -- 28 BUSY
+        -- 27 STOP
+        07 00 CLKDIV
+    }
+
+    I2SCDR @ 0x60 : reg {
+        -- 31 PCS : enum { 0 = SCLK_A; 1 = MPLL }
+        -- 30 CS : enum { 0 = EXCLK; 1 = PLL }
+        -- 29 CE
+        21 13 DIV_M
+        12 00 DIV_N
+    }
+
+    I2SCDR1 @ 0x70 : reg
+
+    LPCDR @ 0x64 : reg {
+        -- 31 CLKSRC : enum { 0 = SCLK_A; 1 = MPLL }
+        -- 28 CE
+        -- 27 BUSY
+        -- 26 STOP
+        07 00 CLKDIV
+    }
+
+    MSC0CDR @ 0x68 : reg {
+        -- 31 CLKSRC : enum { 0 = SCLK_A; 1 = MPLL }
+        -- 29 CE
+        -- 28 BUSY
+        -- 27 STOP
+        -- 15 S_CLK0_SEL : enum { 0 = 90DEG; 1 = 180DEG }
+        07 00 CLKDIV
+    }
+
+    MSC1CDR @ 0xa4 : reg {
+        -- 29 CE
+        -- 28 BUSY
+        -- 27 STOP
+        -- 15 S_CLK1_SEL : enum { 0 = 90DEG; 1 = 180DEG }
+        07 00 CLKDIV
+    }
+
+    USBCDR @ 0x50 : reg {
+        31 30 CLKSRC : enum { 0 = EXCLK; 2 = SCLK_A; 3 = MPLL }
+        -- 29 CE
+        -- 28 BUSY
+        -- 27 STOP
+        -- 26 PHY_GATE
+        07 00 CLKDIV
+    }
+
+    SSICDR @ 0x74 : reg {
+        -- 31 SFC_CS : enum { 0 = SCLK_A; 1 = MPLL }
+        -- 30 SSI_CS : enum { 0 = EXCLK; 1 = HALF_SFC }
+        -- 29 CE
+        -- 28 BUSY
+        -- 27 STOP
+        07 00 CLKDIV
+    }
+
+    CIMCDR @ 0x7c : reg {
+        -- 31 CLKSRC : enum { 1 = MPLL; 1 = SCLK_A }
+        -- 29 CE
+        -- 28 BUSY
+        -- 27 STOP
+        07 00 CLKDIV
+    }
+
+    PCMCDR @ 0x84 : reg {
+        -- 31 PCS : enum { 0 = SCLK_A; 1 = MPLL }
+        -- 30 CS : enum { 0 = EXCLK; 1 = PLL }
+        -- 29 CE
+        21 13 DIV_M
+        12 00 DIV_N
+    }
+
+    PCMCDR1 @ 0xe0 : reg {
+        -- 31 N_EN
+        -- 30 D_EN
+        12 00 DIV_D
+    }
+
+    INTR @ 0xb0 : reg {
+        -- 01 VBUS
+        -- 00 ADEV
+    }
+
+    INTR_EN @ 0xb4 : reg {
+        -- 01 VBUS
+        -- 00 ADEV
+    }
+
+    DRCG @ 0xd0 : reg
+
+    SCRATCH_PROT @ 0x38 : reg
+
+    SCRATCH @ 0x34 : reg
+
+    USBPCR @ 0x3c : reg {
+        -- 31 USB_MODE : enum { 0 = USB; 1 = OTG }
+        -- 30 AVLD_REG
+        29 28 IDPULLUP_MASK : enum { 0 = FROM_OTG; 1 = ALWAYS_SUSPEND; 2 = ALWAYS }
+        -- 27 INCR_MASK
+        -- 26 TXRISETUNE
+        -- 25 COMMONONN
+        -- 24 VBUSVLDEXT
+        -- 23 VBUSVLDEXTSEL
+        -- 22 POR
+        -- 21 SIDDQ
+        -- 20 OTG_DISABLE
+        19 17 COMPDISTUNE
+        16 14 OTGTUNE
+        13 11 SQRXTUNE
+        10 07 TXFSLSTUNE
+        -- 06 TXPREEMPHTUNE
+        05 04 TXHSXVTUNE
+        03 00 TXVREFTUNE
+    }
+
+    USBRDT @ 0x40 : reg {
+        -- 26 HB_MASK
+        -- 25 VBFIL_LD_EN
+        -- 24 IDDIG_EN
+        -- 23 IDDIG_REG
+        22 00 RDT
+    }
+
+    USBVBFIL @ 0x44 : reg {
+        31 16 IDDIGFIL
+        15 00 VBFIL
+    }
+
+    USBPCR1 @ 0x48 : reg {
+        -- 31 BVLD_REG
+        27 26 REFCLK_SEL : enum { 0 = CRYSTAL; 1 = EXTERNAL; 2 = CLKCORE }
+        25 24 REFCLK_DIV : enum { 0 = 12MHZ; 1 = 24MHZ; 2 = 48MHZ }
+        -- 21 PORT_RST
+        -- 19 WORD_IF : enum { 0 = 8BIT; 1 = 16BIT }
+    }
+
+    APCR @ 0x10 : reg {
+        -- 31 BS
+        30 24 PLLM
+        22 18 PLLN
+        17 16 PLLOD
+        -- 15 LOCK
+        -- 10 ON
+        -- 09 BYPASS
+        -- 08 ENABLE
+        07 00 PLLST
+    }
+
+    MPCR @ 0x14 : reg {
+        -- 31 BS
+        30 24 PLLM
+        22 18 PLLN
+        17 16 PLLOD
+        -- 07 ENABLE
+        -- 06 BYPASS
+        -- 01 LOCK
+        -- 00 ON
+    }
+
+    LCR @ 0x04 : reg {
+        19 08 PST
+        01 00 LPM : enum { 0 = IDLE; 1 = SLEEP }
+    }
+
+    PSWC0ST @ 0x90 : reg
+
+    PSWC1ST @ 0x94 : reg
+
+    PSWC2ST @ 0x98 : reg
+
+    PSWC3ST @ 0x9c : reg
+
+    CLKGR @ 0x20 : reg {
+        -- 31 DDR
+        -- 30 CPU_BIT
+        -- 29 AHB0
+        -- 28 APB0
+        -- 27 RTC
+        -- 26 PCM
+        -- 25 MAC
+        -- 24 AES
+        -- 23 LCD
+        -- 22 CIM
+        -- 21 PDMA
+        -- 20 OST
+        -- 19 SSI
+        -- 18 TCU
+        -- 17 DMIC
+        -- 16 UART2
+        -- 15 UART1
+        -- 14 UART0
+        -- 12 JPEG
+        -- 11 AIC
+        -- 09 I2C2
+        -- 08 I2C1
+        -- 07 I2C0
+        -- 06 SCC
+        -- 05 MSC1
+        -- 04 MSC0
+        -- 03 OTG
+        -- 02 SFC
+        -- 01 EFUSE
+    }
+
+    SRBC @ 0xc4 : reg {
+        -- 31 JPEG_SR
+        -- 30 JPEG_STOP
+        -- 29 JPEG_ACK
+        -- 25 LCD_SR
+        -- 24 LCD_STOP
+        -- 23 LCD_ACK
+        -- 21 CIM_STOP
+        -- 20 CIM_ACK
+        -- 15 CPU_STOP
+        -- 14 CPU_ACK
+        -- 12 OTG_SR
+        -- 08 AHB2_STOP
+        -- 07 AHB2_ACK
+        -- 06 DDR_STOP
+        -- 05 DDR_ACK
+    }
+
+    OPCR @ 0x24 : reg {
+        -- 31 IDLE_DIS
+        -- 30 MASK_INT
+        -- 29 MASK_VPU
+        -- 28 GATE_SCLK_A_BUS
+        -- 25 L2C_PD
+        -- 24 REQ_MODE
+        -- 23 GATE_USBPHY_CLK
+        -- 22 DIS_STOP_MUX
+        19 08 O1ST
+        -- 07 SPENDN0
+        -- 06 SPENDN1
+        -- 05 CPU_MODE
+        -- 04 O1SE
+        -- 03 PD
+        -- 02 ERCS
+        -- 01 BUS_MODE
+    }
+
+    RSR @ 0x08 : reg {
+        -- 03 HR
+        -- 02 P0R
+        -- 01 WR
+        -- 00 PR
+    }
+}
+
+TCU @ 0xb0002000 : block {
+    STATUS @ 0xf0 : reg
+    STATUS_SET @ 0xf4 : reg
+    STATUS_CLR @ 0xf8 : reg
+
+    STOP @ 0x1c : reg
+    STOP_SET @ 0x2c : reg
+    STOP_CLR @ 0x3c : reg
+
+    ENABLE @ 0x10 : reg
+    ENABLE_SET @ 0x14 : reg
+    ENABLE_CLR @ 0x18 : reg
+
+    FLAG @ 0x20 : reg
+    FLAG_SET @ 0x24 : reg
+    FLAG_CLR @ 0x28 : reg
+
+    MASK @ 0x30 : reg
+    MASK_SET @ 0x34 : reg
+    MASK_CLR @ 0x38 : reg
+
+    CMP_FULL @ 0x40 [8; 0x10] : reg
+
+    CMP_HALF @ 0x44 [8; 0x10] : reg
+
+    COUNT @ 0x48 [8; 0x10] : reg
+
+    CTRL @ 0x4c [8; 0x10] : reg {
+        -- 11 BYPASS
+        -- 10 CLRZ
+        -- 09 SHUTDOWN : enum { 0 = GRACEFUL; 1 = ABRUPT }
+        -- 08 INIT_LVL
+        -- 07 PWM_EN
+        -- 06 PWM_IN_EN
+        05 03 PRESCALE : enum { 0 = BY_1; 1 = BY_4; 2 = BY_16; 3 = BY_64; 4 = BY_256; 5 = BY_1024 }
+        02 00 SOURCE : enum { 1 = PCLK; 2 = RTC; 4 = EXT }
+    }
+}
+
+OST @ 0xb2000000 : block {
+    CTRL @ 0x00 : reg {
+        03 02 PRESCALE2 : enum { 0 = BY_1; 1 = BY_4; 2 = BY_16 }
+        01 00 PRESCALE1 : enum { 0 = BY_1; 1 = BY_4; 2 = BY_16 }
+    }
+
+    ENABLE @ 0x04 : reg {
+        -- 01 OST2
+        -- 00 OST1
+    }
+    ENABLE_SET @ 0x34 : reg {
+        -- 01 OST2
+        -- 00 OST1
+    }
+    ENABLE_CLR @ 0x38 : reg {
+        -- 01 OST2
+        -- 00 OST1
+    }
+
+    CLEAR @ 0x08 : reg {
+        -- 01 OST2
+        -- 00 OST1
+    }
+
+    1FLG @ 0x0c : reg
+
+    1MSK @ 0x10 : reg
+
+    1DFR @ 0x14 : reg
+
+    1CNT @ 0x18 : reg
+
+    2CNTH @ 0x1c : reg
+
+    2CNTL @ 0x20 : reg
+
+    2CNTHB @ 0x24 : reg
+}
+
+INTC @ 0xb0001000 : block {
+    SRC @ 0x00 [2; 0x20] : reg
+
+    MSK @ 0x04 [2; 0x20] : reg
+    MSK_SET @ 0x08 [2; 0x20] : reg
+    MSK_CLR @ 0x0c [2; 0x20] : reg
+
+    PND @ 0x10 [2; 0x20] : reg
+}
+
+WDT @ 0xb0002000 : block {
+    DATA @ 0x00 : reg
+
+    ENABLE @ 0x04 : reg
+
+    COUNT @ 0x08 : reg
+
+    CTRL @ 0x0c : reg {
+        05 03 PRESCALE : enum { 0 = BY_1; 1 = BY_4; 2 = BY_16; 3 = BY_64; 4 = BY_256; 5 = BY_1024 }
+        02 00 SOURCE : enum { 1 = PLCK; 2 = RTC; 4 = EXT }
+    }
+}
+
+DMA @ 0xb3421000 : block {
+    CTRL @ 0x00 : reg {
+        -- 31 FMSC
+        -- 30 FSSI
+        -- 29 FTSSI
+        -- 28 FUART
+        -- 27 FAIC
+        -- 03 HALT
+        -- 02 AR
+        -- 00 ENABLE
+    }
+
+    IRQP @ 0x04 : reg
+
+    DB @ 0x08 : reg
+    DB_SET @ 0x0c : reg
+
+    DIP @ 0x10 : reg
+
+    DIC @ 0x14 : reg
+}
+
+DMA_CHN @ 0xb3420000 [8; 0x20] : block {
+    SA @ 0x00 : reg
+
+    TA @ 0x04 : reg
+
+    TC @ 0x08 : reg {
+        31 24 DOA
+        23 00 CNT
+    }
+
+    RT @ 0x0c : reg {
+        05 00 TYPE : enum { 5 = DMIC_RX; 6 = I2S_TX; 7 = I2S_RX; 8 = AUTO; 16 = UART2_TX; 17 = UART2_RX; 18 = UART1_TX; 19 = UART1_RX; 20 = UART0_TX; 21 = UART0_RX; 22 = SSI_TX; 23 = SSI_RX; 26 = MSC0_TX; 27 = MSC0_RX; 28 = MSC1_TX; 29 = MSC1_RX; 32 = PCM_TX; 33 = PCM_RX; 36 = I2C0_TX; 37 = I2C0_RX; 38 = I2C1_TX; 39 = I2C1_RX; 40 = I2C2_TX; 41 = I2C2_RX }
+    }
+
+    CS @ 0x10 : reg {
+        -- 31 NDES
+        -- 30 DES8
+        15 08 CDOA
+        -- 04 AR
+        -- 03 TT
+        -- 02 HLT
+        -- 00 CTE
+    }
+
+    CM @ 0x14 : reg {
+        -- 23 SAI
+        -- 22 DAI
+        19 16 RDIL
+        15 14 SP : enum { 0 = 32BIT; 1 = 8BIT; 2 = 16BIT }
+        13 12 DP : enum { 0 = 32BIT; 1 = 8BIT; 2 = 16BIT }
+        10 08 TSZ : enum { 0 = 32BIT; 1 = 8BIT; 2 = 16BIT; 3 = 16BYTE; 4 = 32BYTE; 5 = 64BYTE; 6 = 128BYTE; 7 = AUTO }
+        -- 02 STDE
+        -- 01 TIE
+        -- 00 LINK
+    }
+
+    DA @ 0x18 : reg {
+        31 12 DBA
+        11 04 DOA
+    }
+
+    SD @ 0x1c : reg {
+        31 16 TSD
+        15 00 SSD
+    }
+}
+
+RTC @ 0xb0003000 : block {
+    CR @ 0x00 : reg {
+        -- 07 WRDY
+        -- 06 1HZ
+        -- 05 1HZIE
+        -- 04 AF
+        -- 03 AIE
+        -- 02 AE
+        -- 01 SELEXC
+        -- 00 ENABLE
+    }
+
+    SR @ 0x04 : reg
+
+    SAR @ 0x08 : reg
+
+    GR @ 0x0c : reg {
+        -- 31 LOCK
+        25 16 ADJC
+        15 00 NC1HZ
+    }
+
+    HCR @ 0x20 : reg
+
+    HWFCR @ 0x24 : reg
+
+    HRCR @ 0x28 : reg
+
+    HWCR @ 0x2c : reg {
+        31 03 EPDET
+        -- 01 EALM
+    }
+
+    HWRSR @ 0x30 : reg {
+        -- 08 APD
+        -- 05 HR
+        -- 04 PPR
+        -- 01 PIN
+        -- 00 ALM
+    }
+
+    HSPR @ 0x34 : reg
+
+    WENR @ 0x3c : reg {
+        -- 31 WEN
+        15 00 WENPAT
+    }
+
+    WKUPPINCR @ 0x48 : reg
+}
+
+EFUSE @ 0xb3540000 : block {
+    CTRL @ 0x00 : reg {
+        27 21 ADDR
+        20 16 LENGTH
+        -- 15 PG_EN
+        -- 01 WR_EN
+        -- 00 RD_EN
+    }
+
+    CFG @ 0x04 : reg {
+        -- 31 INT_EN
+        21 20 RD_AJD
+        18 16 RD_STROBE
+        13 12 WR_ADJ
+        08 00 WR_STROBE
+    }
+
+    STATE @ 0x08 : reg {
+        -- 23 UK_PRT
+        -- 22 NKU_PRT
+        -- 21 EXKEY_EN
+        -- 15 CUSTID_PRT
+        -- 14 CHIPID_PRT
+        -- 12 SECBOOT_PRT
+        -- 11 DIS_JTAG
+        -- 08 SECBOOT_EN
+        -- 01 WR_DONE
+        -- 00 RD_DONE
+    }
+
+    DATA @ 0x0c [8; 0x4] : reg
+}
+
+GPIO @ 0xb0010000 : block {
+    PIN @ 0x00 [8; 0x100] : reg
+
+    INT @ 0x10 [8; 0x100] : reg
+    INT_SET @ 0x14 [8; 0x100] : reg
+    INT_CLR @ 0x18 [8; 0x100] : reg
+
+    MSK @ 0x20 [8; 0x100] : reg
+    MSK_SET @ 0x24 [8; 0x100] : reg
+    MSK_CLR @ 0x28 [8; 0x100] : reg
+
+    PAT1 @ 0x30 [8; 0x100] : reg
+    PAT1_SET @ 0x34 [8; 0x100] : reg
+    PAT1_CLR @ 0x38 [8; 0x100] : reg
+
+    PAT0 @ 0x40 [8; 0x100] : reg
+    PAT0_SET @ 0x44 [8; 0x100] : reg
+    PAT0_CLR @ 0x48 [8; 0x100] : reg
+
+    FLAG @ 0x50 [8; 0x100] : reg
+    FLAG_CLR @ 0x58 [8; 0x100] : reg
+
+    PULL @ 0x70 [8; 0x100] : reg
+    PULL_SET @ 0x74 [8; 0x100] : reg
+    PULL_CLR @ 0x78 [8; 0x100] : reg
+
+    Z_GID2LD @ 0x7f0 : reg
+
+    // GPIO port C: glitch filter registers
+    C_GLITCH @ 0x200 : block {
+        CFG0 @ 0x800 : reg
+        CFG0_SET @ 0x804 : reg
+        CFG0_CLR @ 0x808 : reg
+
+        CFG1 @ 0x810 : reg
+        CFG1_SET @ 0x814 : reg
+        CFG1_CLR @ 0x818 : reg
+
+        CFG2 @ 0x820 : reg
+        CFG2_SET @ 0x824 : reg
+        CFG2_CLR @ 0x828 : reg
+
+        CFG3 @ 0x830 : reg
+        CFG3_SET @ 0x834 : reg
+        CFG3_CLR @ 0x838 : reg
+    }
+}
+
+I2C @ 0xb0050000 [3; 0x1000] : block {
+    CON @ 0x00 : reg {
+        -- 06 SLVDIS
+        -- 05 RESTART
+        -- 04 MATP
+        -- 03 SATP
+        02 01 SPEED : enum { 1 = 100K; 2 = 400K }
+        -- 00 MD
+    }
+
+    DC @ 0x10 : reg {
+        -- 10 RESTART
+        -- 09 STOP
+        -- 08 CMD
+        07 00 DAT
+    }
+
+    INTST @ 0x2c : reg {
+        -- 11 GC
+        -- 10 STT
+        -- 09 STP
+        -- 08 ACT
+        -- 07 RXDN
+        -- 06 TXABT
+        -- 05 RDREQ
+        -- 04 TXEMP
+        -- 03 TXOF
+        -- 02 RXFL
+        -- 01 RXOF
+        -- 00 RXUF
+    }
+
+    INTMSK @ 0x30 : reg {
+        -- 11 GC
+        -- 10 STT
+        -- 09 STP
+        -- 08 ACT
+        -- 07 RXDN
+        -- 06 TXABT
+        -- 05 RDREQ
+        -- 04 TXEMP
+        -- 03 TXOF
+        -- 02 RXFL
+        -- 01 RXOF
+        -- 00 RXUF
+    }
+
+    RINTST @ 0x34 : reg {
+        -- 11 GC
+        -- 10 STT
+        -- 09 STP
+        -- 08 ACT
+        -- 07 RXDN
+        -- 06 TXABT
+        -- 05 RDREQ
+        -- 04 TXEMP
+        -- 03 TXOF
+        -- 02 RXFL
+        -- 01 RXOF
+        -- 00 RXUF
+    }
+
+    ENABLE @ 0x6c : reg {
+        -- 01 ABORT
+        -- 00 ACTIVE
+    }
+
+    STATUS @ 0x70 : reg {
+        -- 06 SLVACT
+        -- 05 MSTACT
+        -- 04 RFF
+        -- 03 RFNE
+        -- 02 TFE
+        -- 01 TFNF
+        -- 00 ACT
+    }
+
+    ENBST @ 0x9c : reg {
+        -- 02 SLVRDLST
+        -- 01 SLVDISB
+        -- 00 ACTIVE
+    }
+
+    TAR @ 0x04 : reg {
+        -- 12 10BITS
+        -- 11 SPECIAL
+        -- 10 GC_OR_START
+        09 00 ADDR
+    }
+
+    SAR @ 0x08 : reg
+
+    SHCNT @ 0x14 : reg
+
+    SLCNT @ 0x18 : reg
+
+    FHCNT @ 0x1c : reg
+
+    FLCNT @ 0x20 : reg
+
+    RXTL @ 0x38 : reg
+
+    TXTL @ 0x3c : reg
+
+    TXFLR @ 0x74 : reg
+
+    RXFLR @ 0x78 : reg
+
+    SDAHD @ 0x7c : reg
+
+    ABTSRC @ 0x80 : reg
+
+    DMACR @ 0x88 : reg
+
+    DMATDLR @ 0x8c : reg
+
+    DMARDLR @ 0x90 : reg
+
+    SDASU @ 0x94 : reg
+
+    ACKGC @ 0x98 : reg
+
+    FLT @ 0xa0 : reg
+
+    CINT @ 0x40 : reg
+
+    CRXUF @ 0x44 : reg
+
+    CRXOF @ 0x48 : reg
+
+    CTXOF @ 0x4c : reg
+
+    CRXREQ @ 0x50 : reg
+
+    CTXABT @ 0x54 : reg
+
+    CRXDN @ 0x58 : reg
+
+    CACT @ 0x5c : reg
+
+    CSTP @ 0x60 : reg
+
+    CSTT @ 0x64 : reg
+
+    CGC @ 0x68 : reg
+}
+
+SSI @ 0xb0043000 : block {
+    DR @ 0x00 : reg
+
+    CR0 @ 0x04 : reg {
+        19 18 TENDIAN
+        17 16 RENDIAN
+        -- 15 SSIE
+        -- 14 TIE
+        -- 13 RIE
+        -- 12 TEIE
+        -- 11 REIE
+        -- 10 LOOP
+        -- 09 RFINE
+        -- 08 RFINC
+        -- 07 EACLRUN
+        -- 06 FSEL
+        -- 04 VRCNT
+        -- 03 TFMODE
+        -- 02 TFLUSH
+        -- 01 RFLUSH
+        -- 00 DISREV
+    }
+
+    CR1 @ 0x08 : reg {
+        31 30 FRMHL
+        29 28 TFVCK
+        27 26 TCKFI
+        -- 24 ITFRM
+        -- 23 UNFIN
+        21 20 FMAT
+        19 16 TTRG
+        15 12 MCOM
+        11 08 RTRG
+        07 03 FLEN
+        -- 01 PHA
+        -- 00 POL
+    }
+
+    SR @ 0x0c : reg {
+        24 16 TFIFO_NUM
+        15 08 RFIFO_NUM
+        -- 07 END
+        -- 06 BUSY
+        -- 05 TFF
+        -- 04 RFE
+        -- 03 TFHE
+        -- 02 RFHF
+        -- 01 UNDR
+        -- 00 OVER
+    }
+
+    ITR @ 0x10 : reg {
+        -- 15 CNTCLK
+        14 00 IVLTM
+    }
+
+    ICR @ 0x14 : reg
+
+    GR @ 0x18 : reg
+
+    RCNT @ 0x1c : reg
+}
+
+UART @ 0xb0030000 [3; 0x1000] : block {
+    URBR @ 0x00 : reg
+
+    UTHR @ 0x00 : reg
+
+    UDLLR @ 0x00 : reg
+
+    UDLHR @ 0x04 : reg
+
+    UIER @ 0x04 : reg {
+        -- 04 RTOIE
+        -- 03 MSIE
+        -- 02 RLSIE
+        -- 01 TDRIE
+        -- 00 RDRIE
+    }
+
+    UIIR @ 0x08 : reg {
+        07 06 FFMSEL : enum { 0 = NON_FIFO_MODE; 1 = FIFO_MODE }
+        03 01 INID : enum { 0 = MODEM_STATUS; 1 = TRANSMIT_DATA_REQ; 2 = RECEIVE_DATA_READY; 3 = RECEIVE_LINE_STATUS; 6 = RECEIVE_TIME_OUT }
+        -- 00 INPEND
+    }
+
+    UFCR @ 0x08 : reg {
+        07 06 RDTR : enum { 0 = 1BYTE; 1 = 16BYTE; 2 = 32BYTE; 3 = 60BYTE }
+        -- 04 UME
+        -- 03 DME
+        -- 02 TFRT
+        -- 01 RFRT
+        -- 00 FME
+    }
+
+    ULCR @ 0x0c : reg {
+        -- 07 DLAB
+        -- 06 SBK
+        -- 05 STPAR
+        -- 04 PARM : enum { 0 = ODD; 1 = EVEN }
+        -- 03 PARE
+        -- 02 SBLS : enum { 0 = 1_STOP_BIT; 1 = 2_STOP_BITS }
+        01 00 WLS : enum { 0 = 5BITS; 1 = 6BITS; 2 = 7BITS; 3 = 8BITS }
+    }
+
+    UMCR @ 0x10 : reg {
+        -- 07 MDCE
+        -- 06 FCM
+        -- 04 LOOP
+        -- 01 RTS
+    }
+
+    ULSR @ 0x14 : reg {
+        -- 07 FIFOE
+        -- 06 TEMP
+        -- 05 TDRQ
+        -- 04 BI
+        -- 03 FMER
+        -- 02 PARER
+        -- 01 OVER
+        -- 00 DRY
+    }
+
+    UMSR @ 0x18 : reg {
+        -- 04 CTS
+        -- 00 CCTS
+    }
+
+    USPR @ 0x1c : reg
+
+    ISR @ 0x20 : reg {
+        -- 04 RDPL
+        -- 03 TDPL
+        -- 02 XMODE
+        -- 01 RCVEIR
+        -- 00 XMITIR
+    }
+
+    UMR @ 0x24 : reg
+
+    UACR @ 0x28 : reg
+
+    URCR @ 0x40 : reg
+
+    UTCR @ 0x44 : reg
+}
+
+MSC @ 0xb3450000 [2; 0x10000] : block {
+    CTRL @ 0x00 : reg {
+        -- 15 SEND_CCSD
+        -- 14 SEND_AS_CCSD
+        -- 07 EXIT_MULTIPLE
+        -- 06 EXIT_TRANSFER
+        -- 05 START_READ_WAIT
+        -- 04 STOP_READ_WAIT
+        -- 03 RESET
+        -- 02 START_OP
+        01 00 CLOCK : enum { 0 = DO_NOTHING; 1 = STOP; 2 = START }
+    }
+
+    STAT @ 0x04 : reg {
+        -- 31 AUTO_CMD12_DONE
+        28 24 PINS
+        -- 20 BCE
+        -- 19 BDE
+        -- 18 BAE
+        -- 17 BAR
+        -- 16 DMAEND
+        -- 15 IS_RESETTING
+        -- 14 SDIO_INT_ACTIVE
+        -- 13 PROG_DONE
+        -- 12 DATA_TRAN_DONE
+        -- 11 END_CMD_RES
+        -- 10 DATA_FIFO_AFULL
+        -- 09 IS_READ_WAIT
+        -- 08 CLOCK_EN
+        -- 07 DATA_FIFO_FULL
+        -- 06 DATA_FIFO_EMPTY
+        -- 05 CRC_RES_ERROR
+        -- 04 CRC_READ_ERROR
+        03 02 CRC_WRITE_ERROR : enum { 0 = NONE; 1 = BADDATA; 2 = NOCRC }
+        -- 01 TIME_OUT_RES
+        -- 00 TIME_OUT_READ
+    }
+
+    CMDAT @ 0x0c : reg {
+        -- 31 CCS_EXPECTED
+        -- 30 READ_CEATA
+        -- 27 DIS_BOOT
+        -- 25 EXP_BOOT_ACK
+        -- 24 BOOT_MODE
+        -- 17 SDIO_PRDT
+        -- 16 AUTO_CMD12
+        15 14 RTRG : enum { 0 = GE16; 1 = GE32; 2 = GE64; 3 = GE96 }
+        13 12 TTRG : enum { 0 = LE16; 1 = LE32; 2 = LE64; 3 = LE96 }
+        -- 11 IO_ABORT
+        10 09 BUS_WIDTH : enum { 0 = 1BIT; 2 = 4BIT; 3 = 8BIT }
+        -- 07 INIT
+        -- 06 BUSY
+        -- 05 STREAM_BLOCK
+        -- 04 WRITE_READ
+        -- 03 DATA_EN
+        02 00 RESP_FMT
+    }
+
+    IMASK @ 0x24 : reg {
+        -- 31 DMA_DATA_DONE
+        28 24 PINS
+        -- 23 WR_ALL_DONE
+        -- 20 BCE
+        -- 19 BDE
+        -- 18 BAE
+        -- 17 BAR
+        -- 16 DMAEND
+        -- 15 AUTO_CMD12_DONE
+        -- 14 DATA_FIFO_FULL
+        -- 13 DATA_FIFO_EMPTY
+        -- 12 CRC_RES_ERROR
+        -- 11 CRC_READ_ERROR
+        -- 10 CRC_WRITE_ERROR
+        -- 09 TIME_OUT_RES
+        -- 08 TIME_OUT_READ
+        -- 07 SDIO
+        -- 06 TXFIFO_WR_REQ
+        -- 05 RXFIFO_RD_REQ
+        -- 02 END_CMD_RES
+        -- 01 PROG_DONE
+        -- 00 DATA_TRAN_DONE
+    }
+
+    IFLAG @ 0x28 : reg {
+        -- 31 DMA_DATA_DONE
+        28 24 PINS
+        -- 23 WR_ALL_DONE
+        -- 20 BCE
+        -- 19 BDE
+        -- 18 BAE
+        -- 17 BAR
+        -- 16 DMAEND
+        -- 15 AUTO_CMD12_DONE
+        -- 14 DATA_FIFO_FULL
+        -- 13 DATA_FIFO_EMPTY
+        -- 12 CRC_RES_ERROR
+        -- 11 CRC_READ_ERROR
+        -- 10 CRC_WRITE_ERROR
+        -- 09 TIME_OUT_RES
+        -- 08 TIME_OUT_READ
+        -- 07 SDIO
+        -- 06 TXFIFO_WR_REQ
+        -- 05 RXFIFO_RD_REQ
+        -- 02 END_CMD_RES
+        -- 01 PROG_DONE
+        -- 00 DATA_TRAN_DONE
+    }
+
+    LPM @ 0x40 : reg {
+        31 30 DRV_SEL : enum { 0 = FALL_EDGE; 1 = RISE_EDGE_DELAY_1NS; 2 = RISE_EDGE_DELAY_QTR_PHASE }
+        29 28 SMP_SEL : enum { 0 = RISE_EDGE; 1 = RISE_EDGE_DELAYED }
+        -- 00 ENABLE
+    }
+
+    DMAC @ 0x44 : reg {
+        -- 07 MODE_SEL
+        06 05 ADDR_OFFSET
+        -- 04 ALIGN_EN
+        03 02 INCR
+        -- 01 DMASEL
+        -- 00 ENABLE
+    }
+
+    CTRL2 @ 0x58 : reg {
+        28 24 PIN_INT_POLARITY
+        -- 04 STPRM
+        02 00 SPEED : enum { 0 = DEFAULT; 1 = HIGHSPEED; 2 = SDR12; 3 = SDR25; 4 = SDR50 }
+    }
+
+    CLKRT @ 0x08 : reg
+
+    RESTO @ 0x10 : reg
+
+    RDTO @ 0x14 : reg
+
+    BLKLEN @ 0x18 : reg
+
+    NOB @ 0x1c : reg
+
+    SNOB @ 0x20 : reg
+
+    CMD @ 0x2c : reg
+
+    ARG @ 0x30 : reg
+
+    RES @ 0x34 : reg
+
+    RXFIFO @ 0x38 : reg
+
+    TXFIFO @ 0x3c : reg
+
+    DMANDA @ 0x48 : reg
+
+    DMADA @ 0x4c : reg
+
+    DMALEN @ 0x50 : reg
+
+    DMACMD @ 0x54 : reg
+
+    RTCNT @ 0x5c : reg
+}
+

@@ -1760,7 +1760,7 @@ fi
   # scramble is used by all other targets
   scramblebitmaptools="$genericbitmaptools scramble"
   # used by X1000 targets
-  x1000tools="$genericbitmaptools scramble mkspl-x1000 uclpack"
+  x1000tools="$genericbitmaptools scramble mkspl-x1000 uclpack reggen"
   # default to not generating ELF files
   USE_ELF="no"
   PLUGIN_USE_ELF="no"
