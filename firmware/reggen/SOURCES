@@ -4,3 +4,6 @@ cortex-m.regs
 #if CONFIG_CPU == STM32H743
 stm32h743.regs
 #endif
+#if CONFIG_CPU == X1000
+x1000.regs
+#endif
