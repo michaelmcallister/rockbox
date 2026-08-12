@@ -52,8 +52,15 @@
 #define KBD_SPACE 0x2423
 
 #ifdef HAVE_TOUCHSCREEN
+/* Point mode needs a panel wide enough for finger-sized keys and tall enough to
+ * show all eight lines of its layout at once. Everything else keeps the generic
+ * layout and 3x3 button mode. */
+#if (LCD_WIDTH >= 320) && (LCD_HEIGHT >= 640)
+#define KBD_POINT_MODE
+#endif
+
 /* Increase grid size so it responds better to taps */
-#if LCD_WIDTH >= 320
+#ifdef KBD_POINT_MODE
 #define MIN_GRID_SIZE   44
 #else
 #define MIN_GRID_SIZE   16
@@ -399,6 +406,7 @@ static ucschar_t get_kbd_ch(struct keyboard_parameters *pm, int x, int y)
     return (*pbuf != 0xFEFF && k < *pbuf)? pbuf[k+1]: ' ';
 }
 
+#ifdef HAVE_TOUCHSCREEN
 /* Number of real characters in the grid row drawn at picker row y. */
 static int get_kbd_row_len(struct keyboard_parameters *pm, int y)
 {
@@ -418,6 +426,7 @@ static int get_kbd_row_len(struct keyboard_parameters *pm, int y)
     }
     return 0;
 }
+#endif /* HAVE_TOUCHSCREEN */
 
 static void kbd_calc_pm_params(struct keyboard_parameters *pm,
                             struct screen *sc, struct edit_state *state);
@@ -461,7 +470,7 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
 
 #ifdef HAVE_TOUCHSCREEN
     enum touchscreen_mode old_mode = touchscreen_get_mode();
-#if LCD_WIDTH >= 320
+#ifdef KBD_POINT_MODE
     touchscreen_set_mode(TOUCHSCREEN_POINT);
 #else
     /* keyboard is unusuable in pointing mode so force 3x3 for now.
@@ -492,9 +501,11 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
             const unsigned char *p;
             int len = 0;
 
-#if defined(HAVE_TOUCHSCREEN) && (LCD_WIDTH >= 320) && (LCD_HEIGHT >= 640)
-            /* Two pages of eight lines; page two is page one shifted, cell
-             * for cell. Needs a panel tall enough to show all eight at once. */
+#ifdef KBD_POINT_MODE
+            /* Three pages of eight lines. Page two is page one shifted, cell
+             * for cell; page three completes Latin-1 and adds the accented
+             * letters common to the other European locales. The space bar
+             * occupies the same cells on every page. */
             if (touchscreen_get_mode() == TOUCHSCREEN_POINT)
             {
                 p = "1234567890\n"
@@ -503,7 +514,7 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
                     "zxcvbnm,./\n"
                     "àáâäåçèéêë\n"
                     "ìíîïñòóôöù\n"
-                    "úûüÿ'\n"
+                    "úûüÿ'æøðþý\n"
                     "`-=␣␣␣␣[]\\\n"
                     "!@#$%^&*()\n"
                     "QWERTYUIOP\n"
@@ -511,8 +522,16 @@ int kbd_input(char* text, int buflen, ucschar_t *kbd)
                     "ZXCVBNM<>?\n"
                     "ÀÁÂÄÅÇÈÉÊË\n"
                     "ÌÍÎÏÑÒÓÔÖÙ\n"
-                    "ÚÛÜŸ\"\n"
-                    "~_+␣␣␣␣{}|";
+                    "ÚÛÜŸ\"ÆØÐÞÝ\n"
+                    "~_+␣␣␣␣{}|\n"
+                    "¡¢£¤¥¦§¨©ª\n"
+                    "«¬®¯°±²³´µ\n"
+                    "¶·¸¹º»¼½¾¿\n"
+                    "×÷ßÃãÕõ€Œœ\n"
+                    "ĐđČčĎďĚěŇň\n"
+                    "ŘřŠšŤťŮůŽž\n"
+                    "ĄąĆćĘęŁłŃń\n"
+                    "ŚśŹ␣␣␣␣źŻż";
                 pm->default_lines = 8;
                 pm->max_line_len = 10;
             }
@@ -1662,6 +1681,18 @@ static void kbd_move_picker_horizontal(struct keyboard_parameters *pm,
     state->changed = CHANGED_PICKER;
 
     pm->x += dir;
+    /* The space bar spans several cells but highlights and inserts as one key,
+     * so step over the whole run instead of stopping inside it, which looks
+     * like the cursor is stuck. */
+    if (pm->x >= 0 && pm->x < pm->max_chars &&
+        get_kbd_ch(pm, pm->x, pm->y) == KBD_SPACE &&
+        get_kbd_ch(pm, pm->x - dir, pm->y) == KBD_SPACE)
+    {
+        while (pm->x >= 0 && pm->x < pm->max_chars &&
+               get_kbd_ch(pm, pm->x, pm->y) == KBD_SPACE)
+            pm->x += dir;
+    }
+
     if (pm->x < 0)
     {
         if (!global_settings.list_wraparound && pm->page == 0)
