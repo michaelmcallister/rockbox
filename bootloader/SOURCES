@@ -70,6 +70,7 @@ show_logo.c
 sansaconnect.c
 show_logo.c
 #elif defined(FIIO_M3K) || defined(SHANLING_Q1) || defined(EROS_QN)
+ingenic/gui-ingenic.c
 x1000/boot.c
 x1000/gui.c
 x1000/install.c
