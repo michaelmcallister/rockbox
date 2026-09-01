@@ -29,6 +29,7 @@
 
 #include "clk-x1000.h"
 #include "gpio-ingenic.h"
+#include "debug-ingenic.h"
 
 static bool dbg_clocks(void)
 {
@@ -178,10 +179,7 @@ extern bool cw2015_debug_menu(void);
 #endif
 
 /* Menu definition */
-static const struct {
-    const char* name;
-    bool(*function)(void);
-} menuitems[] = {
+const struct ingenic_debug_menuitem ingenic_debug_menu[] = {
     {"Clocks", &dbg_clocks},
     {"GPIOs", &dbg_gpios},
 #ifdef X1000_CPUIDLE_STATS
@@ -202,49 +200,7 @@ static const struct {
 #endif
 };
 
-static int hw_info_menu_action_cb(int btn, struct gui_synclist* lists)
-{
-    if(btn == ACTION_STD_OK) {
-        int sel = gui_synclist_get_sel_pos(lists);
-        FOR_NB_SCREENS(i)
-            viewportmanager_theme_enable(i, false, NULL);
-
-        lcd_setfont(FONT_SYSFIXED);
-        lcd_set_foreground(LCD_WHITE);
-        lcd_set_background(LCD_BLACK);
-
-        if(menuitems[sel].function())
-            btn = SYS_USB_CONNECTED;
-        else
-            btn = ACTION_REDRAW;
-
-        lcd_setfont(FONT_UI);
-
-        FOR_NB_SCREENS(i)
-            viewportmanager_theme_undo(i, false);
-    }
-
-    return btn;
-}
-
-static const char* hw_info_menu_get_name(int item, void* data,
-                                         char* buffer, size_t buffer_len)
-{
-    (void)buffer;
-    (void)buffer_len;
-    (void)data;
-    return menuitems[item].name;
-}
-
-bool dbg_hw_info(void)
-{
-    struct simplelist_info info;
-    simplelist_info_init(&info, MODEL_NAME " debug menu",
-                         ARRAYLEN(menuitems), NULL);
-    info.action_callback = hw_info_menu_action_cb;
-    info.get_name = hw_info_menu_get_name;
-    return simplelist_show_list(&info);
-}
+const int ingenic_debug_menu_count = ARRAYLEN(ingenic_debug_menu);
 
 bool dbg_ports(void)
 {

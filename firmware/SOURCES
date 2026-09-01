@@ -1762,6 +1762,7 @@ target/mips/ingenic_x1000/aic-x1000.c
 target/mips/ingenic_x1000/boot-x1000.c
 target/mips/ingenic_x1000/clk-x1000.c
 target/mips/ingenic_x1000/debug-x1000.c
+target/mips/ingenic/debug-ingenic.c
 target/mips/ingenic/dma-ingenic.c
 target/mips/ingenic/gpio-ingenic.c
 target/mips/ingenic/i2c-ingenic.c
