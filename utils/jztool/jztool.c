@@ -29,13 +29,14 @@ jz_usbdev* usbdev = NULL;
 const jz_device_info* dev_info = NULL;
 const jz_cpu_info* cpu_info = NULL;
 
-void usage_x1000(void)
+void usage_load(void)
 {
     printf(
 "Usage:\n"
 "  jztool fiiom3k load <bootloader.m3k>\n"
 "  jztool shanlingq1 load <bootloader.q1>\n"
 "  jztool erosq load <bootloader.erosq>\n"
+"  jztool hibyr1 load <bootloader.r1>\n"
 "\n"
 "The 'load' command is used to boot the Rockbox bootloader in recovery\n"
 "mode, which allows you to install the Rockbox bootloader and backup or\n"
@@ -50,11 +51,16 @@ void usage_x1000(void)
 "4. Plug the other end of the USB cable into your computer.\n"
 "5. Let go of the USB boot key.\n"
 "\n"
+"The boot key must be held before the cable is connected: inserting the\n"
+"cable is what powers the SoC, and the boot select pin is sampled at that\n"
+"instant.\n"
+"\n"
 "USB boot keys:\n"
 "\n"
 "  FiiO M3K    - Volume Down\n"
 "  Shanling Q1 - Play\n"
 "  Eros Q      - Menu\n"
+"  HiBy R1     - Next\n"
 "\n"
 "Not all players give a visible indication that they are in USB boot mode.\n"
 "If you're having trouble connecting your player, try resetting it by\n"
@@ -70,10 +76,11 @@ void usage_x1000(void)
     exit(4);
 }
 
-int cmdline_x1000(int argc, char** argv)
+int cmdline_load(int argc, char** argv,
+                 int (*boot_fn)(jz_usbdev*, jz_device_type, const char*))
 {
     if(argc < 2 || strcmp(argv[0], "load")) {
-        usage_x1000();
+        usage_load();
         return 2;
     }
 
@@ -83,7 +90,7 @@ int cmdline_x1000(int argc, char** argv)
         return 1;
     }
 
-    rc = jz_x1000_boot(usbdev, dev_info->device_type, argv[1]);
+    rc = boot_fn(usbdev, dev_info->device_type, argv[1]);
     if(rc < 0) {
         jz_log(jz, JZ_LOG_ERROR, "Boot failed: %d", rc);
         return 1;
@@ -203,7 +210,10 @@ int main(int argc, char** argv)
     case JZ_DEVICE_SHANLINGQ1:
     case JZ_DEVICE_EROSQ:
     case JZ_DEVICE_SHANLINGM0PRO:
-        return cmdline_x1000(argc, argv);
+        return cmdline_load(argc, argv, jz_x1000_boot);
+
+    case JZ_DEVICE_HIBYR1:
+        return cmdline_load(argc, argv, jz_x1600_boot);
 
     default:
         jz_log(jz, JZ_LOG_ERROR, "INTERNAL ERROR: unhandled device type");

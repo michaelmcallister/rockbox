@@ -23,6 +23,7 @@
 
 #include "jztool.h"
 #include <libusb.h>
+#include "microtar.h"
 
 struct jz_context {
     void* user_data;
@@ -39,5 +40,14 @@ struct jz_usbdev {
 
 int jz_context_ref_libusb(jz_context* jz);
 void jz_context_unref_libusb(jz_context* jz);
+
+enum {
+    JZ_BOOT_DECOMPRESS = 0x01,
+    JZ_BOOT_OPTIONAL   = 0x02,
+};
+
+int jz_boot_get_file(jz_context* jz, mtar_t* tar, const char* file,
+                     unsigned int flags, jz_buffer** buf);
+int jz_boot_show_version(jz_context* jz, jz_buffer* info_file);
 
 #endif /* JZTOOL_PRIVATE_H */

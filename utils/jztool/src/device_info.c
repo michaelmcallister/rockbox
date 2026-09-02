@@ -58,6 +58,15 @@ static const jz_device_info infotable[JZ_NUM_DEVICES] = {
         .vendor_id = 0x0525,
         .product_id = 0xa4a5,
     },
+    [JZ_DEVICE_HIBYR1] = {
+        .name = "hibyr1",
+        .file_ext = "r1",
+        .description = "HiBy R1",
+        .device_type = JZ_DEVICE_HIBYR1,
+        .cpu_type = JZ_CPU_X1600,
+        .vendor_id = 0x32bb,
+        .product_id = 0x0004,
+    },
 };
 
 static const jz_cpu_info cputable[JZ_NUM_CPUS] = {
@@ -69,6 +78,15 @@ static const jz_cpu_info cputable[JZ_NUM_CPUS] = {
         .stage1_exec_addr = 0xf4001800,
         .stage2_load_addr = 0x80004000,
         .stage2_exec_addr = 0x80004000,
+    },
+    [JZ_CPU_X1600] = {
+        .info_str = "X1600",
+        .vendor_id = 0xa108,
+        .product_id = 0xeaef,
+        .stage1_load_addr = 0x8000a000,
+        .stage1_exec_addr = 0x8000a000,
+        .stage2_load_addr = 0x80100000,
+        .stage2_exec_addr = 0x80100000,
     },
 };
 
