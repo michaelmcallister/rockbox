@@ -143,13 +143,27 @@ void jz_usb_close(jz_usbdev* dev)
     free(dev);
 }
 
+// Direction of each vendor request. X1600 PM Table 34-6 documents GET_CPU_INFO
+// as host to device, but it returns data, so it only works as device to host.
+static const unsigned char vendor_req_dir[6] = {
+    [VR_GET_CPU_INFO]     = LIBUSB_ENDPOINT_IN,
+    [VR_SET_DATA_ADDRESS] = LIBUSB_ENDPOINT_OUT,
+    [VR_SET_DATA_LENGTH]  = LIBUSB_ENDPOINT_OUT,
+    [VR_FLUSH_CACHES]     = LIBUSB_ENDPOINT_OUT,
+    [VR_PROGRAM_START1]   = LIBUSB_ENDPOINT_OUT,
+    [VR_PROGRAM_START2]   = LIBUSB_ENDPOINT_OUT,
+};
+
 // Does an Ingenic-specific vendor request
 // Written with X1000 in mind but other Ingenic CPUs have the same commands
 static int jz_usb_vendor_req(jz_usbdev* dev, int req, uint32_t arg,
                              void* buffer, int buflen)
 {
+    if(req < 0 || req >= (int)(sizeof(vendor_req_dir)/sizeof(vendor_req_dir[0])))
+        return JZ_ERR_OTHER;
+
     int rc = libusb_control_transfer(dev->handle,
-        LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+        vendor_req_dir[req] | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
         req, arg >> 16, arg & 0xffff, buffer, buflen, 1000);
 
     if(rc < 0) {
@@ -277,6 +291,7 @@ int jz_usb_flush_caches(jz_usbdev* dev)
 int jz_usb_get_cpu_info(jz_usbdev* dev, char* buffer, size_t buflen)
 {
     char tmpbuf[JZ_CPUINFO_BUFLEN];
+    memset(tmpbuf, 0, sizeof(tmpbuf));
     int rc = jz_usb_vendor_req(dev, VR_GET_CPU_INFO, 0, tmpbuf, 8);
     if(rc != JZ_SUCCESS)
         return rc;
