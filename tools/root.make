@@ -114,6 +114,8 @@ ifneq (,$(findstring bootloader,$(APPSDIR)))
     include $(ROOTDIR)/firmware/target/hosted/fiio/fiio.make
   else ifneq (,$(findstring ingenic_x1000,$(MANUFACTURER)))
     include $(ROOTDIR)/firmware/target/mips/ingenic_x1000/x1000boot.make
+  else ifneq (,$(findstring ingenic_x1600,$(MANUFACTURER)))
+    include $(ROOTDIR)/firmware/target/mips/ingenic_x1600/x1600boot.make
   else
     include $(APPSDIR)/bootloader.make
   endif

@@ -1,0 +1,134 @@
+% Derived from apps/keymaps/keymap-hibyr3proii.c, which is the keymap this
+% target compiles (CONFIG_KEYPAD = HIBY_R3PROII_PAD).
+%
+% The R1 has FIVE physical keys -- Power, Play, Volume Up, Volume Down, Next --
+% and a touchscreen. It has no Prev key: button-target.h defines BUTTON_PREV
+% only so the shared R3 Pro II keymap compiles, and button_read_device() can
+% never report it. Actions bound solely to BUTTON_PREV are therefore reachable
+% only through the touchscreen, and are documented as such below rather than
+% naming a key the player does not have.
+
+\newcommand{\ButtonPower}{\btnfnt{Power}}
+\newcommand{\ButtonPlay}{\btnfnt{Play}}
+\newcommand{\ButtonVolUp}{\btnfnt{Volume Up}}
+\newcommand{\ButtonVolDown}{\btnfnt{Volume Down}}
+\newcommand{\ButtonNext}{\btnfnt{Next}}
+\newcommand{\ButtonTouch}{\btnfnt{Touchscreen}}
+\newcommand{\ButtonSelect}{\ButtonPlay}
+\newcommand{\ButtonBack}{\ButtonPower}
+\newcommand{\ButtonMenu}{\ButtonPower}
+\newcommand{\ButtonUp}{\ButtonNext}
+\newcommand{\ButtonDown}{\ButtonTouch}
+\newcommand{\ButtonLeft}{\ButtonVolDown}
+\newcommand{\ButtonRight}{\ButtonVolUp}
+\newcommand{\ButtonPrev}{\ButtonTouch}
+\newcommand{\ButtonScrollFwd}{\ButtonVolUp}
+\newcommand{\ButtonScrollBack}{\ButtonVolDown}
+
+%Button actions, standard context
+\newcommand{\ActionStdPrev}{\TouchActionStdPrev}
+\newcommand{\ActionStdPrevRepeat}{\TouchActionStdPrevRepeat}
+\newcommand{\ActionStdNext}{\ButtonNext}
+\newcommand{\ActionStdNextRepeat}{Long \ButtonNext}
+\newcommand{\ActionStdOk}{\ButtonPlay}
+\newcommand{\ActionStdCancel}{\ButtonPower}
+\newcommand{\ActionStdContext}{Long \ButtonPlay}
+\newcommand{\ActionStdMenu}{\TouchActionStdMenu}
+\newcommand{\ActionStdKeylock}{\ButtonPower{} + \ButtonVolUp}
+\newcommand{\ActionStdQuickScreen}{\TouchActionStdQuickScreen}
+\newcommand{\ActionStdHotkey}{\ButtonTouch}
+\newcommand{\ActionStdUsbCharge}{\ButtonVolUp{} or \ButtonVolDown}
+
+%Button actions, wps context
+\newcommand{\ActionWpsPlay}{\ButtonPlay}
+\newcommand{\ActionWpsStop}{Long \ButtonPlay}
+\newcommand{\ActionWpsSkipNext}{\ButtonNext}
+\newcommand{\ActionWpsSkipPrev}{\TouchActionWpsSkipPrev}
+\newcommand{\ActionWpsSeekFwd}{Long \ButtonNext}
+\newcommand{\ActionWpsSeekBack}{\TouchActionWpsSeekBack}
+\newcommand{\ActionWpsVolUp}{\ButtonVolUp}
+\newcommand{\ActionWpsVolDown}{\ButtonVolDown}
+\newcommand{\ActionWpsMenu}{\ButtonPower}
+\newcommand{\ActionWpsBrowse}{\TouchActionWpsBrowse}
+\newcommand{\ActionWpsContext}{\TouchActionWpsContext}
+\newcommand{\ActionWpsQuickScreen}{\TouchActionWpsQuickScreen}
+\newcommand{\ActionWpsHotkey}{\TouchBottomRight}
+
+%Button actions, settings context
+\newcommand{\ActionSettingsInc}{\ButtonVolUp}
+\newcommand{\ActionSettingsIncBigStep}{Long \ButtonVolUp}
+\newcommand{\ActionSettingsDec}{\ButtonVolDown}
+\newcommand{\ActionSettingsDecBigStep}{Long \ButtonVolDown}
+
+%Button actions, list context
+\newcommand{\ActionListVolUp}{\ButtonVolUp}
+\newcommand{\ActionListVolDown}{\ButtonVolDown}
+
+%Button actions, tree context
+\newcommand{\ActionTreeWps}{\TouchActionTreeWps}
+\newcommand{\ActionTreeEnter}{\ButtonPlay}
+\newcommand{\ActionTreeParentDirectory}{\ButtonPower}
+\newcommand{\ActionTreeMenu}{\ButtonTouch}
+\newcommand{\ActionTreeHotkey}{\ButtonTouch}
+
+%Button actions, yesno context
+\newcommand{\ActionYesNoAccept}{\ButtonPlay}
+
+%Button actions, quickscreen context
+\newcommand{\ActionQuickScreenTop}{\ButtonVolUp}
+\newcommand{\ActionQuickScreenDown}{\ButtonVolDown}
+\newcommand{\ActionQuickScreenLeft}{\ButtonPlay}
+\newcommand{\ActionQuickScreenRight}{\ButtonNext}
+\newcommand{\ActionQuickScreenExit}{\ButtonPower}
+
+%Button actions, pitchscreen context
+\newcommand{\ActionPsIncSmall}{\ButtonVolUp}
+\newcommand{\ActionPsDecSmall}{\ButtonVolDown}
+\newcommand{\ActionPsIncBig}{\TouchActionPsIncBig}
+\newcommand{\ActionPsDecBig}{\TouchActionPsDecBig}
+\newcommand{\ActionPsNudgeLeft}{\TouchActionPsNudgeLeft}
+\newcommand{\ActionPsNudgeRight}{\TouchActionPsNudgeRight}
+\newcommand{\ActionPsToggleMode}{\TouchActionPsToggleMode}
+\newcommand{\ActionPsReset}{\TouchActionPsReset}
+\newcommand{\ActionPsExit}{\ButtonPower}
+\newcommand{\ActionPsSlower}{\TouchActionPsSlower}
+\newcommand{\ActionPsFaster}{\TouchActionPsFaster}
+
+%Button actions, keyboard context
+\newcommand{\ActionKbdLeft}{\ButtonVolDown}
+\newcommand{\ActionKbdRight}{\ButtonVolUp}
+\newcommand{\ActionKbdCursorLeft}{\TouchActionKbdCursorLeft}
+\newcommand{\ActionKbdCursorRight}{\TouchActionKbdCursorRight}
+\newcommand{\ActionKbdUp}{\ButtonNext}
+\newcommand{\ActionKbdDown}{\TouchActionKbdDown}
+\newcommand{\ActionKbdPageFlip}{\TouchActionKbdPageFlip}
+\newcommand{\ActionKbdBackSpace}{\TouchActionKbdBackSpace}
+\newcommand{\ActionKbdSelect}{\ButtonPlay}
+\newcommand{\ActionKbdDone}{Long \ButtonPlay}
+\newcommand{\ActionKbdAbort}{\ButtonPower}
+
+%Button actions, bookmark context
+\newcommand{\ActionBmDelete}{\TouchActionBmDelete}
+
+% Stopping from the tree is bound only in keymap-touchscreen.c.
+\newcommand{\ActionTreeStop}{\TouchActionTreeStop}
+
+% Neither keymap binds A-B actions; these touchscreen aliases are placeholders.
+\newcommand{\ActionWpsAbReset}{\TouchActionWpsAbReset}
+\newcommand{\ActionWpsAbSetAPrevDir}{\TouchActionWpsAbSetAPrevDir}
+\newcommand{\ActionWpsAbSetBNextDir}{\TouchActionWpsAbSetBNextDir}
+
+%Plugin lib actions
+\newcommand{\PluginUp}{\TouchTopMiddle}
+\newcommand{\PluginDown}{\TouchBottomMiddle}
+\newcommand{\PluginLeft}{\TouchMidLeft}
+\newcommand{\PluginRight}{\TouchMidRight}
+\newcommand{\PluginSelect}{\TouchCenter}
+\newcommand{\PluginSelectRepeat}{Long \TouchCenter}
+\newcommand{\PluginCancel}{\TouchBottomRight}
+\newcommand{\PluginExit}{\ButtonPower}
+
+%Bootloader actions
+\newcommand{\ActionIngenicUSBBoot}{\ButtonNext}
+\newcommand{\ActionBootRecoveryMenu}{\ButtonNext}
+\newcommand{\ActionBootOFPlayer}{\ButtonPlay}

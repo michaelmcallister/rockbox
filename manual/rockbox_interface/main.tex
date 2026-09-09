@@ -889,7 +889,9 @@ properly.}
     \section{USB Charging}
     Your \dap{} will automatically charge when connected to USB. By default
     Rockbox will connect in mass storage mode to transfer files, but you can
-    prevent this by holding down any button while plugging in the USB cable,
+    prevent this by holding down
+    \opt{hibyr1native}{\ActionStdUsbCharge{}}%
+    \nopt{hibyr1native}{any button} while plugging in the USB cable,
     or by changing the \setting{USB Mode} setting to \setting{Charge Only}.
     \nopt{fuzeplus}{
     \note{Be aware that holding a button may still perform its normal function,

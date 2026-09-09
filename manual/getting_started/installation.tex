@@ -1,7 +1,7 @@
 \chapter{Installation}\label{sec:installation}
 
-Installing Rockbox is generally a quick and easy procedure. However
-before beginning there are a few important things to know.
+\nopt{hibyr1native}{Installing Rockbox is generally a quick and easy procedure. However
+before beginning there are a few important things to know.}
 
 \section{Before Starting}
 
@@ -150,7 +150,7 @@ of before installing.
 \end{description}
 }
 
-\nopt{gigabeats,fiiom3k,shanlingq1}{
+\nopt{gigabeats,fiiom3k,shanlingq1,hibyr1native}{
 \begin{description}
 
 \nopt{ipod1g2g}{
@@ -325,12 +325,19 @@ It is also worth noting that data transfer rates are not likely to be improved w
 }
 
 \section{Installing Rockbox}\label{sec:installing_rockbox}\index{Installation}
-\nopt{rgnano}{
+\nopt{rgnano,hibyr1native}{
   There are two ways to install Rockbox: automated and manual. The automated
   way is the preferred method of installing Rockbox for the majority of
   people. Rockbox Utility is a graphical application that does almost everything
   for you. However, should you encounter a problem, then the manual way is
   still available to you.\\
+}
+
+\opt{hibyr1native}{
+  Rockbox Utility does not currently support the native port to the \playername{}.
+  This manual does not yet provide an initial bootloader installation procedure.
+  The firmware copying and update instructions below assume that the native
+  Rockbox bootloader is already installed.
 }
 
 \opt{rgnano}{
@@ -382,10 +389,13 @@ It is also worth noting that data transfer rates are not likely to be improved w
 
   \opt{HAVE_RB_BL_IN_FLASH}{
   The bootloader is the program that tells your
-  \dap{} how to load and start other components of Rockbox and for providing
-  the dual boot function. This is the component of Rockbox that is installed
-  to the flash memory of your \playerman.
-  \opt{iaudiom3,iaudiom5,iaudiox5}{\note{Dual boot does not currently work on the \playertype.}}}
+  \dap{} how to load and start other components of Rockbox%
+  \nopt{hibyr1native}{ and for providing the dual boot function}. This is the
+  component of Rockbox that is installed to the flash memory of your \playerman.
+  \opt{iaudiom3,iaudiom5,iaudiox5}{\note{Dual boot does not currently work on the \playertype.}}
+  \opt{hibyr1native}{\note{The native Rockbox bootloader only boots Rockbox;
+    dual boot is not supported. Installing it erases the original firmware's
+    first-stage bootloader (SPL).}}}
 
 \item[The Rockbox firmware.]
   \opt{HAVE_RB_BL_IN_FLASH}{Unlike the \playerman{} firmware, which runs
@@ -420,12 +430,12 @@ in installing.
     the look of Rockbox.
 \end{description}
 
-\subsection{Automated Installation}
+\nopt{hibyr1native}{\subsection{Automated Installation}}
 
 \opt{gigabeats,ondavx777,fiiom3k,shanlingq1,erosqnative}{
 \note{Rockbox Utility does not currently support the \playertype{} and you will
 therefore need to follow the manual install instructions.}}
-\nopt{erosqnative}{
+\nopt{erosqnative,hibyr1native}{
 To automatically install Rockbox, download the official installer and
 housekeeping tool \caps{Rockbox Utility}. It allows you to:
 \begin{itemize}
@@ -532,17 +542,20 @@ filesystem.\\*
     \fname{firmware.sb} from the \fname{.zip} file to your desktop.}
 }
 }
-\subsubsection{Choosing a Rockbox version}\label{sec:choosing_version}
+\nopt{hibyr1native}{\subsubsection{Choosing a Rockbox version}}
+\opt{hibyr1native}{\subsection{Choosing a Rockbox version}}
+\label{sec:choosing_version}
 
 There are three different versions of Rockbox available from the
 Rockbox website:
 \label{Version}
 Release version, current build and archived daily build. You need to decide which one
-you want to install and get the appropriate version for your \dap{}. If you
+you want to install and get the appropriate version for your \dap{}.
+\nopt{hibyr1native}{If you
 select either ``Minimal Installation'' or ``Complete Installation'' from the
 ``Quick Start'' tab, then Rockbox Utility will automatically install the
 release version of Rockbox. Using the ``Installation'' tab will allow you
-to select which version you wish to install.
+to select which version you wish to install.}
 
 \opt{erosqnative}{
 \note{\textbf{There are two different versions of Rockbox for the \playertype{}. This manual only
@@ -575,11 +588,11 @@ that the download name includes "erosqnative"!}}
       try the latest and greatest features at the price of possibly greater instability,
       or you wish to help with development, you should stick with the release.\\*}
 
-Please now go to \reference{ref:finish_install} to complete the installation procedure.
+\nopt{hibyr1native}{Please now go to \reference{ref:finish_install} to complete the installation procedure.}
 
 \subsection{Manual Installation}
 
-\nopt{erosqnative}{
+\nopt{erosqnative,hibyr1native}{
 The manual installation method is still available to you, should you need or desire it
 by following the instructions below. If you have used Rockbox Utility
 to install Rockbox, then you do not need to follow the next section and can skip
@@ -608,6 +621,11 @@ data partition.}}
   \note{Remember that this operation will need to be repeated if you switch to a different SD card!}
 }
 
+\opt{hibyr1native}{
+  These steps copy the Rockbox firmware to a FAT32-formatted microSD card;
+  they do not install the native bootloader. Use a build for \fname{hibyr1native}.
+}
+
 \begin{enumerate}
 \item Download your chosen version of Rockbox from the links in the
   previous section.
@@ -631,6 +649,7 @@ data partition.}}
       \end{enumerate}
   }
 
+\nopt{hibyr1native}{
 \item Connect your \dap{} to the computer via USB%
   \nopt{erosqnative}{
     \opt{sansa,sansaAMS,iriverh10,iriverh10_5gb,vibe500,fuzeplus,samsungyh}%
@@ -641,6 +660,11 @@ data partition.}}
   \opt{erosqnative}{by, with the player OFF, holding \ButtonPlay{} and \ButtonPower{}
     to boot into the original firmware, and then plugging in the USB cable.
   }
+}
+\opt{hibyr1native}{
+\item Power off your \dap{}, remove the microSD card and connect it to your
+  computer using a card reader.
+}
 
 \item Take the \fname{.zip} file that you downloaded and use
  the ``Extract all'' command of your unzip program to extract
@@ -648,7 +672,7 @@ data partition.}}
  \opt{gigabeats,fuzeplus}{the main data partition of }%
  \opt{cowond2}{either an SD card or the internal memory of }%
  \opt{ondavx777}{the MicroSD of }%
- \opt{rgnano}{the root of the microSD card of }%
+ \opt{rgnano,hibyr1native}{the root of the microSD card of }%
  your \dap{}.
  \opt{cowond2}{\note{If you have chosen to extract to the internal memory, it
      will not be possible to save settings.}}
@@ -692,6 +716,11 @@ by Rockbox, in the main directory of your \daps{} drive.
         \opt{xduoox3}{\input{getting_started/xduoox3_install.tex}}
         \opt{xduoox3ii,xduoox20,agptekrocker,aigoerosq}{\input{getting_started/hibyos_install.tex}}
         \opt{fiiom3k,shanlingq1}{\input{getting_started/jztool_install.tex}}
+        \opt{hibyr1native}{
+          Initial installation of the native bootloader is not yet documented
+          in this manual. The installation procedures for other players do not
+          apply to the \playername{}.
+        }
     }
 }
 
@@ -790,25 +819,33 @@ by Rockbox, in the main directory of your \daps{} drive.
 \opt{fiiom3k,shanlingq1,erosqnative}{
   Safely eject / unmount your \dap{} and reboot it.
 }
+\opt{hibyr1native}{
+  Safely eject / unmount the microSD card, insert it into your powered-off
+  \dap{} and turn it on. This requires an already installed native bootloader.
+}
 
 
 \subsection{Enabling Speech Support (optional)}\label{sec:enabling_speech_support}
 \index{Speech}\index{Installation!Optional Steps}
 If you wish to use speech support you will also need a voice file. Voice files
-allow Rockbox to speak the user interface to you. Rockbox Utility can install
+allow Rockbox to speak the user interface to you. \nopt{hibyr1native}{Rockbox Utility can install
 an English voice file, or you can download it from \url{https://www.rockbox.org/daily.shtml}
 and unzip it to the root of your \dap{}.
 Rockbox Utility can also aid you in the creation of voice files with different voices
-or in other languages if you have a suitable speech engine installed on your computer.
+or in other languages if you have a suitable speech engine installed on your computer.}
+\opt{hibyr1native}{If a voice file is available for your native build, unzip it
+to the root of the microSD card.}
 Voice menus are enabled by default and will come
 into effect after a reboot. See \reference{ref:Voiceconfiguration} for details
 on voice settings.
-Rockbox Utility can also aid in the production of talk files, which allow Rockbox
-to speak file and folder names.
+\nopt{hibyr1native}{Rockbox Utility can also aid in the production of talk files, which allow Rockbox
+to speak file and folder names.}
 
 \section{Running Rockbox}
-\nopt{ipod,gigabeats,cowond2,rgnano}{When
+\nopt{ipod,gigabeats,cowond2,rgnano,hibyr1native}{When
 you turn the unit on, Rockbox should load.}
+\opt{hibyr1native}{With the native bootloader installed and the prepared
+microSD card inserted, Rockbox should load when you turn the \dap{} on.}
 \opt{ipod}{Hard reset the iPod by holding
   \opt{IPOD_4G_PAD}{\ButtonMenu{} and \ButtonSelect{} simultaneously}%
   \opt{IPOD_3G_PAD}{\ButtonMenu{} and \ButtonPlay{} simultaneously}
@@ -856,16 +893,16 @@ you turn the unit on, Rockbox should load.}
 
 \section{Updating Rockbox}
 
-\nopt{erosqnative}{
+\nopt{erosqnative,hibyr1native}{
 Rockbox can be easily updated with Rockbox Utility. You can also update Rockbox
 }
-\opt{erosqnative}{
+\opt{erosqnative,hibyr1native}{
 The Native Port to \playername{} is not supported by Rockbox Utility yet, so Rockbox Utility cannot update it.
 Rockbox is easily updated
 }
 manually -- download a Rockbox build
 as detailed above, and unzip the build to the root directory
-of your \dap{} as in the manual installation stage. If your unzip
+of your \dap{}\opt{hibyr1native}{'s microSD card} as in the manual installation stage. If your unzip
 program asks you whether to overwrite files, choose the ``Yes to all'' option.
 The new build will be installed over your current build.\\
 
@@ -882,7 +919,7 @@ The bootloader only changes rarely, and should not normally
 need to be updated.\\
 }
 
-\nopt{erosqnative}{
+\nopt{erosqnative,hibyr1native}{
 \note{If you use Rockbox Utility be aware that it cannot detect manually
         installed components.\\}
 }
@@ -894,15 +931,23 @@ need to be updated.\\
 
 \section{Uninstalling Rockbox}\index{Installation!uninstall}
 
-\nopt{gigabeatf,iaudiom3,iaudiom5,iaudiox5,mrobe100,gigabeats,fuzeplus,erosqnative,rgnano}{
+\nopt{gigabeatf,iaudiom3,iaudiom5,iaudiox5,mrobe100,gigabeats,fuzeplus,erosqnative,rgnano,hibyr1native}{
   \note{The Rockbox bootloader allows you to choose between Rockbox and
   the original firmware. (See \reference{ref:Dualboot} for more information.)}
 }
 
-\subsection{Automatic Uninstallation}
+\opt{hibyr1native}{
+  Rockbox Utility cannot uninstall the native port. Removing the
+  \fname{.rockbox} directory from the microSD card does not restore the original
+  firmware's first-stage bootloader (SPL) and will leave Rockbox unable to boot.
+  A procedure for removing the native bootloader and restoring the original
+  firmware is not yet documented in this manual.
+}
+
+\nopt{hibyr1native}{\subsection{Automatic Uninstallation}}
 \opt{gigabeats,erosqnative,rgnano}{\note{Rockbox can only be uninstalled manually from the \playername{} for now.}}
 
-\nopt{erosqnative,rgnano}{
+\nopt{erosqnative,rgnano,hibyr1native}{
   You can uninstall Rockbox automatically by using Rockbox Utility. If you
   installed Rockbox manually you can still use Rockbox Utility for uninstallation
   but will not be able to do this selectively.
@@ -912,7 +957,7 @@ need to be updated.\\
 the fact that it requires a flashing procedure. To uninstall the bootloader
 completely follow the manual uninstallation instructions below.}}
 
-\subsection{Manual Uninstallation}
+\nopt{hibyr1native}{\subsection{Manual Uninstallation}}
 
 \opt{iriverh10,iriverh10_5gb,mrobe100,vibe500,samsungyh}{
   If you would like to go back to using the original \playerman{} software,
@@ -1002,7 +1047,7 @@ completely follow the manual uninstallation instructions below.}}
     \end{enumerate}
 }
 
-\nopt{gigabeats,rgnano}{
+\nopt{gigabeats,rgnano,hibyr1native}{
   If you wish to clean up your disk, you may also wish to delete the
   \fname{.rockbox} directory and its contents.
   \nopt{iaudiom3,iaudiom5,iaudiox5,fiiom3k,shanlingq1}{
@@ -1076,7 +1121,7 @@ completely follow the manual uninstallation instructions below.}}
   the update if the filename is correct, including case. Make sure that the patched
   Iriver firmware is called \fname{.hex}.}
 
-\nopt{rgnano}{
+\nopt{rgnano,hibyr1native}{
   \nopt{iriverh100,iriverh300,mpiohd200}{\item[``File Not Found'']}
   \opt{iriverh100,iriverh300,mpiohd200}{\item[``$-1$ error'']}
     If you receive a
@@ -1098,6 +1143,13 @@ completely follow the manual uninstallation instructions below.}}
       can be used to do this easily), re-copy the entirety of the \fname{.zip} file's
       contents to the root of the SD card and reboot the device.
     }
+}
+
+\opt{hibyr1native}{
+  \item[Could not start Rockbox.]
+  Check that the microSD card is formatted as FAT32 and contains the entire
+  extracted build at its root, including \fname{.rockbox/rockbox.r1}.
+  See \reference{sec:installing_firmware} for the file copying instructions.
 }
 
 \opt{rgnano}{

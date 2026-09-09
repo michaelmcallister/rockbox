@@ -888,8 +888,9 @@ therefore result in better runtime.
         This controls what happens with the \dap{}'s USB port is connected.
         \setting{Mass Storage} allows you to transfer files, while
         \setting{Charge Only} will only charge the battery (and allow you to keep
-        using the player). You can choose the opposite behavior by holding down any
-        button while plugging in the USB cable.
+        using the player). You can choose the opposite behavior by holding down
+        \opt{hibyr1native}{\ActionStdUsbCharge{}}%
+        \nopt{hibyr1native}{any button} while plugging in the USB cable.
         \nopt{fuzeplus}{
           \note{Be aware that holding a button may still perform its normal function,
           so it is recommended to use a button without harmful side effects, such as
