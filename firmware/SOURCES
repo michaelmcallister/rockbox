@@ -1806,6 +1806,9 @@ target/mips/ingenic/nand-ingenic.c
 target/mips/ingenic_x1600/sfc-x1600.c
 target/mips/ingenic_x1600/system-x1600.c
 target/mips/ingenic_x1600/timer-x1600.c
+#if (CONFIG_STORAGE & (STORAGE_SD|STORAGE_MMC|STORAGE_ATA))
+target/mips/ingenic_x1600/msc-x1600.c
+#endif
 #ifdef BOOTLOADER
 target/mips/ingenic/installer-ingenic.c
 target/mips/ingenic_x1600/spl-start.S

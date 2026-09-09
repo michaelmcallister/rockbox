@@ -69,6 +69,7 @@ static unsigned int num_drives;
 
 static struct event_queue storage_queue SHAREDBSS_ATTR;
 static unsigned int storage_thread_id = 0;
+static bool storage_queue_ready;
 
 static union {
 #if (CONFIG_STORAGE & STORAGE_ATA)
@@ -267,8 +268,16 @@ void storage_close(void)
 
 void storage_post_event(long event, intptr_t data)
 {
-    if (storage_thread_id)
+    if (storage_queue_ready)
         queue_post(&storage_queue, event, data);
+}
+
+static inline void storage_queue_init(void)
+{
+    if (!storage_queue_ready) {
+        queue_init(&storage_queue, true);
+        storage_queue_ready = true;
+    }
 }
 
 static inline void storage_thread_init(void)
@@ -277,7 +286,7 @@ static inline void storage_thread_init(void)
         return;
     }
 
-    queue_init(&storage_queue, true);
+    storage_queue_init();
     storage_thread_id = create_thread(storage_thread, &storage_thread_stack,
                                       sizeof (storage_thread_stack),
                                       0, &storage_thread_name[1]
@@ -290,6 +299,8 @@ int storage_init(void)
     int rc=0;
 
 #ifdef HAVE_SDMMC_HOST
+    /* Retain early host events until the storage thread can process them. */
+    storage_queue_init();
     sdmmc_host_target_init();
 #endif
 
