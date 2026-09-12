@@ -235,6 +235,13 @@ struct touchregion {
             } value;
         } setting_data;
         int   value;
+        struct {
+            int action, inner_percent, steps;
+            struct gesture_wheel state;
+            unsigned int seek_serial;
+            unsigned long position;
+            bool seeking;
+        } scroll;
     };
     long last_press;        /* last tick this was pressed */
     OFFSETTYPE(struct progressbar*) bar;

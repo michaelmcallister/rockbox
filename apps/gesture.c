@@ -181,6 +181,69 @@ bool gesture_vel_get(struct gesture_vel *gv, int *xvel, int *yvel)
     return gv->cnt >= ARRAYLEN(gv->xsamp);
 }
 
+/* Clockwise angle in 1/1024 turns, or -1 outside the ring. */
+static int wheel_angle(int x, int y, int diameter, int inner_percent)
+{
+    int radius = diameter / 2;
+    int inner = radius * inner_percent / 100;
+    x -= radius;
+    y -= radius;
+    int ax = abs(x), ay = abs(y);
+    if (ax > radius || ay > radius || (ax == 0 && ay == 0))
+        return -1;
+    int distance = x*x + y*y;
+    if (distance < inner*inner || distance > radius*radius)
+        return -1;
+
+    /* Linear octants approximate the angle to within 4 degrees. */
+    int angle = ax >= ay ? 128*ay/ax : 256 - 128*ax/ay;
+    if (x < 0)
+        angle = 512 - angle;
+    if (y < 0)
+        angle = 1024 - angle;
+    return angle & 1023;
+}
+
+int gesture_wheel_get(struct gesture_wheel *wheel,
+                      const struct gesture_event *ev,
+                      int diameter, int inner_percent, int steps)
+{
+    int position = wheel_angle(ev->x, ev->y, diameter, inner_percent);
+
+    if (ev->id == GESTURE_NONE && ev->start_tick == ev->last_tick)
+    {
+        wheel->active = position >= 0;
+        wheel->position = position;
+        wheel->remainder = 0;
+        wheel->start_tick = ev->start_tick;
+    }
+    if (ev->id == GESTURE_TAP || ev->id == GESTURE_RELEASE)
+        wheel->active = false;
+    if (!wheel->active || wheel->start_tick != ev->start_tick ||
+        (ev->id != GESTURE_DRAGSTART && ev->id != GESTURE_DRAG))
+        return 0;
+
+    if (position < 0 || wheel->position < 0)
+    {
+        wheel->position = position;
+        wheel->remainder = 0;
+        return 0;
+    }
+    int delta = position - wheel->position;
+    wheel->position = position;
+    delta = ((delta + 1536) & 1023) - 512;
+    /* Rebase after a discontinuity instead of guessing its direction. */
+    if (abs(delta) > 256)
+    {
+        wheel->remainder = 0;
+        return 0;
+    }
+    int movement = wheel->remainder + delta * steps;
+    wheel->remainder = movement % 1024;
+    /* Drop excess steps instead of queuing motion after release. */
+    return movement / 1024 > 0 ? 1 : movement / 1024 < 0 ? -1 : 0;
+}
+
 /*
  * flick detector
  */

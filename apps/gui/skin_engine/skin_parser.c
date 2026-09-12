@@ -1817,6 +1817,50 @@ static int parse_touchregion(struct skin_element *element,
         region->action = ACTION_TOUCH_SCROLLBAR;
     else if(!strcmp(vol_string, action))
         region->action = ACTION_TOUCH_VOLUME;
+    else if (!strcmp(action, "scroll"))
+    {
+        static const char * const actions[] =
+            {"list", "volume", "progressbar", NULL};
+        if (element->params_count < p+3)
+            return WPS_ERROR_INVALID_PARAM;
+        int target = string_option(get_param_text(element, p++),
+                                   actions, false);
+        if (target < 0)
+            return WPS_ERROR_INVALID_PARAM;
+        region->scroll.action = target == 0 ? ACTION_TOUCH_SCROLL :
+                                target == 1 ? ACTION_TOUCH_VOLUME :
+                                              ACTION_TOUCH_SCROLLBAR;
+        int geometry = get_param(element, 0)->type == STRING ? 1 : 0;
+        for (int i = geometry; i < geometry+4; ++i)
+        {
+            param = get_param(element, i);
+            if ((param->type == INTEGER &&
+                 param->data.number != (int16_t)param->data.number) ||
+                (param->type == PERCENT &&
+                 (param->data.number < 0 || param->data.number > 1000)))
+                return WPS_ERROR_INVALID_PARAM;
+        }
+        if ((region->scroll.action == ACTION_TOUCH_SCROLL &&
+             curr_skin != CUSTOM_STATUSBAR) ||
+            region->width < 4 || region->width != region->height ||
+            region->x < 0 || region->y < 0 ||
+            region->width > curr_vp->vp.width - region->x ||
+            region->height > curr_vp->vp.height - region->y)
+            return WPS_ERROR_INVALID_PARAM;
+        char *end, *text = get_param_text(element, p++);
+        long steps = strtol(text, &end, 10);
+        if (end == text || *end || steps < 1 || steps > 128)
+            return WPS_ERROR_INVALID_PARAM;
+        region->scroll.steps = steps;
+        text = get_param_text(element, p++);
+        long hole = strtol(text, &end, 10);
+        if (end == text || *end || hole < 1 || hole > 99)
+            return WPS_ERROR_INVALID_PARAM;
+        region->scroll.inner_percent = hole;
+        region->action = ACTION_TOUCH_SCROLL;
+        region->scroll.state.active = false;
+        region->scroll.seeking = false;
+    }
     else
     {
         imax = ARRAYLEN(touchactions);
@@ -1852,6 +1896,9 @@ static int parse_touchregion(struct skin_element *element,
     {
         char* param = get_param_text(element, p++);
         pm_op = string_option(param, pm_options, false);
+        if (region->action == ACTION_TOUCH_SCROLL &&
+            (pm_op < 0 || pm_op > 1))
+            return WPS_ERROR_INVALID_PARAM;
         if (pm_op == 0)
             region->allow_while_locked = true;
         else if (pm_op == 1)

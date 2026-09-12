@@ -565,6 +565,7 @@ static void gwps_leave_wps(bool theme_enabled)
     /* unhandle statusbar update delay */
     sb_skin_set_update_delay(DEFAULT_UPDATE_DELAY);
 #ifdef HAVE_TOUCHSCREEN
+    skin_cancel_touch_seek();
     touchscreen_set_mode(global_settings.touch_mode);
 #endif
 }
@@ -1120,6 +1121,10 @@ static void track_info_callback(unsigned short id, void *param)
 {
     struct wps_state *state = get_wps_state();
 
+#ifdef HAVE_TOUCHSCREEN
+    if (id == PLAYBACK_EVENT_TRACK_CHANGE || id == PLAYBACK_EVENT_TRACK_SKIP)
+        skin_cancel_touch_seek();
+#endif
     if (id == PLAYBACK_EVENT_TRACK_CHANGE || id == PLAYBACK_EVENT_CUR_TRACK_READY)
     {
         state->id3 = ((struct track_event *)param)->id3;
