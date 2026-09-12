@@ -133,6 +133,19 @@ void gesture_vel_reset(struct gesture_vel *gv);
 void gesture_vel_process(struct gesture_vel *gv, const struct touchevent *ev);
 bool gesture_vel_get(struct gesture_vel *gv, int *xvel, int *yvel);
 
+/* Circular scrolling */
+struct gesture_wheel
+{
+    int position, remainder;
+    long start_tick;
+    bool active;
+};
+
+/* Returns at most one step per event: clockwise 1, counterclockwise -1. */
+int gesture_wheel_get(struct gesture_wheel *wheel,
+                      const struct gesture_event *ev,
+                      int diameter, int inner_percent, int steps);
+
 /* Flick detection */
 enum gesture_flick_id
 {

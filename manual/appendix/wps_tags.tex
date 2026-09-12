@@ -677,6 +677,29 @@ display cycling round the defined sublines. See
     \item[ffwd] -- Seek forwards in the track.
     \item[rwd] -- Seek backwards in the track.
     \item[progressbar] -- Seek to the appropriate position in the track based on the touch.
+    \item[scroll] -- Adjust list selection, volume or playback position
+      with a circular touch control. Additional parameters are the action
+      (\config{list}, \config{volume} or \config{progressbar}), sensitivity
+      (1--128) and inner-radius percentage (1--99). The region must be square.
+      For example:
+      \begin{verbatim}
+%T(74,65,332,332,scroll,list,24,40)
+%T(74,65,332,332,scroll,volume,24,40)
+%T(74,65,332,332,scroll,progressbar,60,40)
+      \end{verbatim}
+      Sensitivity is the approximate number of list items, volume steps or
+      playback seconds per full rotation. Clockwise increases the value;
+      \config{reverse_bar} reverses this direction.
+      List controls are SBS-only and stop at the list ends. Volume and playback
+      controls may also be used in the WPS. Playback position is previewed
+      while dragging and applied on release. A track or screen change
+      cancels the seek.
+      Put scroll controls before overlapping buttons: taps still activate the
+      buttons, while drags adjust the value. Touches must begin inside the
+      ring; leaving it suspends movement until the finger returns.
+      At most one item, volume step or second is delivered per touch report,
+      so fast movement may produce fewer steps. \config{repeat_press} and
+      \config{long_press} are not supported for scroll controls.
     \item[shuffle] -- Toggle shuffle mode.
     \item[repmode] -- Cycle through the repeat modes.
     \item[volume] -- Set the volume to the appropriate level based on the touch.

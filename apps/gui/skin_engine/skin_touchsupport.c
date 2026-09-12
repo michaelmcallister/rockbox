@@ -20,6 +20,7 @@
 
 #include "config.h"
 #include <stdio.h>
+#include <limits.h>
 #include "action.h"
 #include "skin_engine.h"
 #include "wps_internals.h"
@@ -35,10 +36,87 @@
 #include "playback.h"
 #include "iap-usb.h"
 
+static unsigned int touch_seek_serial;
+static bool touch_seeking;
+
+void skin_cancel_touch_seek(void)
+{
+    if (touch_seeking)
+        get_wps_state()->ff_rewind_count = 0;
+    touch_seeking = false;
+    ++touch_seek_serial;
+}
+
 /** Disarms all touchregions. */
 void skin_disarm_touchregions(struct gui_wps *gwps)
 {
     gesture_reset(&gwps->data->gesture);
+    skin_cancel_touch_seek();
+}
+
+static int skin_get_scrollaction(struct touchregion *r,
+                                 const struct gesture_event *ev)
+{
+    struct wps_state *wps = get_wps_state();
+    bool active = r->scroll.state.active;
+    int step = gesture_wheel_get(&r->scroll.state, ev, r->width,
+                                 r->scroll.inner_percent, r->scroll.steps);
+    if (ev->id == GESTURE_NONE && ev->start_tick == ev->last_tick)
+    {
+        r->scroll.position = wps->id3 ? wps->id3->elapsed : 0;
+        r->scroll.seek_serial = touch_seek_serial;
+        r->scroll.seeking = false;
+    }
+    /* Taps and holds still belong to overlapping buttons. */
+    if (ev->id == GESTURE_TAP || ev->id == GESTURE_LONG_PRESS ||
+        ev->id == GESTURE_HOLD || (!r->scroll.state.active &&
+                                 !(active && ev->id == GESTURE_RELEASE)))
+        return ACTION_TOUCHSCREEN;
+    if (r->reverse_bar)
+        step = -step;
+    if (step)
+        r->last_press = ev->last_tick;
+
+    if (r->scroll.action == ACTION_TOUCH_SCROLL)
+        return step > 0 ? ACTION_TOUCH_SCROLL_DOWN :
+               step < 0 ? ACTION_TOUCH_SCROLL_UP : ACTION_NONE;
+    if (r->scroll.action == ACTION_TOUCH_VOLUME)
+    {
+        if (step)
+            adjust_volume(step);
+        return step ? ACTION_REDRAW : ACTION_NONE;
+    }
+
+    /* Keep the preview separate from playback until the finger is lifted. */
+    if (r->scroll.seek_serial != touch_seek_serial ||
+        global_settings.party_mode ||
+        !(audio_status() & AUDIO_STATUS_PLAY) || !wps->id3 ||
+        !wps->id3->length || wps->id3->length > INT_MAX ||
+        wps->id3->elapsed > wps->id3->length)
+    {
+        r->scroll.state.active = false;
+        r->scroll.seeking = false;
+        skin_cancel_touch_seek();
+        return ACTION_NONE;
+    }
+    if (step)
+    {
+        int64_t position = (int64_t)r->scroll.position + step * 1000;
+        r->scroll.position = MAX(0, MIN(position, (int64_t)wps->id3->length));
+        r->scroll.seeking = touch_seeking = true;
+    }
+    if (!r->scroll.seeking)
+        return ACTION_NONE;
+    wps->ff_rewind_count = (long)r->scroll.position - (long)wps->id3->elapsed;
+    if (ev->id == GESTURE_RELEASE)
+    {
+        wps->id3->elapsed = r->scroll.position;
+        skin_cancel_touch_seek();
+        r->scroll.seeking = false;
+        audio_pre_ff_rewind();
+        audio_ff_rewind(r->scroll.position);
+    }
+    return ACTION_REDRAW;
 }
 
 /* Get the touched action.
@@ -54,6 +132,8 @@ int skin_get_touchaction(struct gui_wps *gwps, int* edge_offset)
     struct gesture_event gevent;
 
     action_get_touch_event(&tevent);
+    if (tevent.type == TOUCHEVENT_PRESS)
+        skin_cancel_touch_seek();
     gesture_process(&data->gesture, &tevent);
 
     struct skin_token_list *regions = SKINOFFSETTOPTR(skin_buffer, data->touchregions);
@@ -64,15 +144,23 @@ int skin_get_touchaction(struct gui_wps *gwps, int* edge_offset)
         struct touchregion *r = SKINOFFSETTOPTR(skin_buffer, token->value.data);
         struct skin_viewport *wvp = SKINOFFSETTOPTR(skin_buffer, r->wvp);
 
-        /* make sure this region's viewport is visible */
-        if (wvp->hidden_flags & VP_DRAW_HIDDEN)
+        /* Ignore hidden or locked regions. */
+        if ((wvp->hidden_flags & VP_DRAW_HIDDEN) ||
+            (data->touchscreen_locked && r->action != ACTION_TOUCH_SOFTLOCK &&
+             !r->allow_while_locked))
+        {
+            if (r->action == ACTION_TOUCH_SCROLL)
+            {
+                r->scroll.state.active = false;
+                if (r->scroll.seeking)
+                {
+                    r->scroll.seeking = false;
+                    if (r->scroll.seek_serial == touch_seek_serial)
+                        skin_cancel_touch_seek();
+                }
+            }
             continue;
-
-        /* unless it's allow_while_locked, ignore the region if locked
-         * (this is a special skin engine lock, different from softlock) */
-        if (data->touchscreen_locked &&
-            (r->action != ACTION_TOUCH_SOFTLOCK && !r->allow_while_locked))
-            continue;
+        }
 
         /* check for a gesture inside the region's parent viewport */
         if (!gesture_get_event_in_vp(&data->gesture, &gevent, &wvp->vp))
@@ -101,6 +189,13 @@ int skin_get_touchaction(struct gui_wps *gwps, int* edge_offset)
 
         switch (r->action)
         {
+        case ACTION_TOUCH_SCROLL:
+        {
+            int action = skin_get_scrollaction(r, &gevent);
+            if (action != ACTION_TOUCHSCREEN)
+                return action;
+            break;
+        }
         case ACTION_TOUCH_SCROLLBAR:
         case ACTION_TOUCH_VOLUME:
         case ACTION_TOUCH_SETTING:

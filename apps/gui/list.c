@@ -643,6 +643,16 @@ bool gui_synclist_do_button(struct gui_synclist * lists, int *actionptr)
     }
 #endif
 #if defined(HAVE_TOUCHSCREEN)
+    if (action == ACTION_TOUCH_SCROLL_UP || action == ACTION_TOUCH_SCROLL_DOWN)
+    {
+        /* Wheel movement must not use hold acceleration. */
+        next_item_modifier = 1;
+#ifndef HAVE_WHEEL_ACCELERATION
+        last_accel_tick = 0;
+#endif
+        action = *actionptr = action == ACTION_TOUCH_SCROLL_UP ?
+                              ACTION_STD_PREVREPEAT : ACTION_STD_NEXTREPEAT;
+    }
     if (action == ACTION_TOUCHSCREEN)
         action = *actionptr = gui_synclist_do_touchscreen(lists);
     else if (action > ACTION_TOUCHSCREEN_MODE)

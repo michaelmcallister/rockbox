@@ -44,6 +44,7 @@ struct gui_wps;
 #ifdef HAVE_TOUCHSCREEN
 int skin_get_touchaction(struct gui_wps *gwps, int* edge_offset);
 void skin_disarm_touchregions(struct gui_wps *gwps);
+void skin_cancel_touch_seek(void);
 #endif
 
 /* Do a update_type update of the skinned screen */
