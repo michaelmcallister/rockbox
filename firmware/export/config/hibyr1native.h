@@ -72,6 +72,7 @@
 #define CONFIG_KEYPAD   HIBY_R3PROII_PAD
 #define HAVE_TOUCHSCREEN
 #define HAVE_BUTTON_DATA
+#define HAVE_KBD_POINT_MODE
 
 /* CST8xx on I2C1: PA16 interrupt, PA17 reset, ALDO2 supply. Single touch,
  * no axis swap or inversion. */
